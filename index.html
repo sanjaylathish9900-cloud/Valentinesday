@@ -13,9 +13,7 @@
       transition: background-color 0.8s ease;
     }
 
-    body.red-bg {
-      background: #d32f2f;
-    }
+    body.red-bg { background: #d32f2f; }
 
     .screen {
       width: 100vw;
@@ -29,9 +27,7 @@
       color: black;
     }
 
-    body.red-bg .screen {
-      color: white;
-    }
+    body.red-bg .screen { color: white; }
 
     .puppy {
       font-size: 130px;
@@ -106,11 +102,19 @@
   <source src="Namukku Parkkan Munthirithoppukal - The Proposal (mp3cut.net).mp3" type="audio/mpeg">
 </audio>
 
+<audio id="noAudio" preload="auto">
+  <source src="apamanich kazhinjenkil njn pokkotte.mp3" type="audio/mpeg">
+</audio>
+
 <script>
   const app = document.getElementById('app');
   const bgAudio = document.getElementById('bgAudio');
+  const noAudio = document.getElementById('noAudio');
+
   let evadeHandler = null;
   let fading = false;
+  let noAttempts = 0;
+  let noAudioPlayed = false;
 
   function stopAudio() {
     bgAudio.pause(); bgAudio.currentTime = 0; bgAudio.volume = 1; fading = false;
@@ -136,9 +140,8 @@
       if (!fading && bgAudio.duration && bgAudio.currentTime >= bgAudio.duration - 4) {
         fading = true;
         const fade = setInterval(() => {
-          if (bgAudio.volume > 0.05) {
-            bgAudio.volume -= 0.05;
-          } else {
+          if (bgAudio.volume > 0.05) bgAudio.volume -= 0.05;
+          else {
             clearInterval(fade);
             bgAudio.pause();
             document.body.classList.remove('red-bg');
@@ -151,18 +154,35 @@
 
   function pageThree() {
     stopAudio();
+    noAttempts = 0;
+    noAudioPlayed = false;
+
     app.innerHTML = `<div class="screen">${puppy('🐶🥹')}<div class="question">Will you be my Valentine?</div><button class="yes-btn show" onclick="meltdown()">YES</button><button class="no-btn" id="noBtn">NO</button></div>`;
 
     const noBtn = document.getElementById('noBtn');
     noBtn.style.left = '60%'; noBtn.style.top = '60%';
+
     evadeHandler = e => {
       const r = noBtn.getBoundingClientRect();
       const d = Math.hypot(e.clientX-(r.left+r.width/2), e.clientY-(r.top+r.height/2));
+
       if (d < 130) {
+        noAttempts++;
+
+        if (noAttempts >= 5 && !noAudioPlayed) {
+          noAudioPlayed = true;
+          noAudio.play();
+
+          noAudio.onended = () => {
+            noBtn.style.display = 'none';
+          };
+        }
+
         noBtn.style.left = Math.random()*(innerWidth-140)+'px';
         noBtn.style.top = Math.random()*(innerHeight-140)+'px';
       }
     };
+
     document.addEventListener('mousemove', evadeHandler);
   }
 
