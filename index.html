@@ -10,6 +10,11 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: white;
       overflow: hidden;
+      transition: background-color 0.8s ease;
+    }
+
+    body.red-bg {
+      background: #d32f2f;
     }
 
     .screen {
@@ -21,9 +26,13 @@
       justify-content: center;
       text-align: center;
       position: relative;
+      color: black;
     }
 
-    /* ===== ORIGINAL SIMPLE PUPPY FACE ===== */
+    body.red-bg .screen {
+      color: white;
+    }
+
     .puppy {
       font-size: 130px;
       margin-bottom: 15px;
@@ -103,28 +112,67 @@
   let evadeHandler = null;
   let fading = false;
 
+  function stopAudio() {
+    bgAudio.pause();
+    bgAudio.currentTime = 0;
+    bgAudio.volume = 1;
+    fading = false;
+    document.body.classList.remove('red-bg');
+  }
+
   function puppy(face) {
     return `<div class="puppy">${face}</div>`;
   }
 
-  function stopAudio() {
-    bgAudio.pause(); bgAudio.currentTime = 0; bgAudio.volume = 1; fading = false;
-  }
-
   function pageOne() {
     stopAudio();
-    app.innerHTML = `<div class="screen">${puppy('🐶')}<div class="question">Are you Shajiii?</div><button class="yes-btn show" onclick="pageTwo()">YES</button></div>`;
+    app.innerHTML = `
+      <div class="screen">
+        ${puppy('🐶')}
+        <div class="question">Are you Shajiii?</div>
+        <button class="yes-btn show" onclick="pageTwo()">YES</button>
+      </div>
+    `;
   }
 
   function pageTwo() {
-    app.innerHTML = `<div class="screen">${puppy('🐶😊')}<div class="question">nammuk graamangalil chennn raaparkam?......</div><button class="yes-btn" id="q2Yes" onclick="pageThree()">YES</button></div>`;
-    bgAudio.currentTime = 0; bgAudio.volume = 1; bgAudio.play();
+    // Red background during audio
+    document.body.classList.add('red-bg');
+
+    app.innerHTML = `
+      <div class="screen">
+        ${puppy('🐶😊')}
+        <div class="question">nammuk graamangalil chennn raaparkam?......</div>
+        <button class="yes-btn" id="q2Yes" onclick="pageThree()">YES</button>
+      </div>
+    `;
+
+    bgAudio.currentTime = 0;
+    bgAudio.volume = 1;
+    fading = false;
+
+    // Start playing (should work on GitHub Pages because user already clicked)
+    bgAudio.play().catch(() => {
+      // If blocked, nothing will proceed until it plays/ends
+      // (Usually fine once hosted + after a click)
+    });
+
+    // Fade out during the last ~4 seconds, then show YES and revert background
     bgAudio.ontimeupdate = () => {
       if (!fading && bgAudio.duration && bgAudio.currentTime >= bgAudio.duration - 4) {
         fading = true;
+
         const fade = setInterval(() => {
-          if (bgAudio.volume > 0.05) bgAudio.volume -= 0.05;
-          else { clearInterval(fade); bgAudio.pause(); document.getElementById('q2Yes').classList.add('show'); }
+          if (bgAudio.volume > 0.05) {
+            bgAudio.volume -= 0.05;
+          } else {
+            clearInterval(fade);
+            bgAudio.pause();
+
+            // Back to white background and reveal YES
+            document.body.classList.remove('red-bg');
+            document.getElementById('q2Yes').classList.add('show');
+          }
         }, 200);
       }
     };
@@ -132,28 +180,59 @@
 
   function pageThree() {
     stopAudio();
-    app.innerHTML = `<div class="screen">${puppy('🐶🥹')}<div class="question">Will you be my Valentine?</div><button class="yes-btn show" onclick="meltdown()">YES</button><button class="no-btn" id="noBtn">NO</button></div>`;
+
+    app.innerHTML = `
+      <div class="screen">
+        ${puppy('🐶🥹')}
+        <div class="question">Will you be my Valentine?</div>
+        <button class="yes-btn show" onclick="meltdown()">YES</button>
+        <button class="no-btn" id="noBtn">NO</button>
+      </div>
+    `;
+
     const noBtn = document.getElementById('noBtn');
-    noBtn.style.left = '60%'; noBtn.style.top = '60%';
-    evadeHandler = e => {
+    noBtn.style.left = '60%';
+    noBtn.style.top = '60%';
+
+    evadeHandler = (e) => {
       const r = noBtn.getBoundingClientRect();
-      const d = Math.hypot(e.clientX-(r.left+r.width/2), e.clientY-(r.top+r.height/2));
+      const d = Math.hypot(
+        e.clientX - (r.left + r.width / 2),
+        e.clientY - (r.top + r.height / 2)
+      );
+
       if (d < 130) {
-        noBtn.style.left = Math.random()*(innerWidth-140)+'px';
-        noBtn.style.top = Math.random()*(innerHeight-140)+'px';
+        noBtn.style.left = Math.random() * (innerWidth - 140) + 'px';
+        noBtn.style.top = Math.random() * (innerHeight - 140) + 'px';
       }
     };
+
     document.addEventListener('mousemove', evadeHandler);
   }
 
   function meltdown() {
     document.removeEventListener('mousemove', evadeHandler);
-    app.innerHTML = `<div class="screen shake">${puppy('🐶')}<div class="meltdown-text">I DON’T WANT YOU… SORRY</div></div>`;
+
+    app.innerHTML = `
+      <div class="screen shake">
+        ${puppy('🐶')}
+        <div class="meltdown-text">I DON’T WANT YOU… SORRY</div>
+      </div>
+    `;
+
     setTimeout(finalReveal, 3000);
   }
 
   function finalReveal() {
-    app.innerHTML = `<div class="screen reveal">${puppy('🐶❤️')}<div class="final-text">Just kidding 😌<br><br>Happy Valentine’s Day, Shajiii ❤️</div></div>`;
+    app.innerHTML = `
+      <div class="screen reveal">
+        ${puppy('🐶❤️')}
+        <div class="final-text">
+          Just kidding 😌<br><br>
+          Happy Valentine’s Day, Shajiii ❤️
+        </div>
+      </div>
+    `;
   }
 
   pageOne();
