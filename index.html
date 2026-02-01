@@ -23,15 +23,19 @@
       position: relative;
     }
 
+    /* ===== ORIGINAL SIMPLE PUPPY FACE ===== */
     .puppy {
       font-size: 130px;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
+      animation: bob 1.6s infinite ease-in-out;
     }
 
-    .question {
-      font-size: 28px;
-      margin: 20px;
+    @keyframes bob {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
     }
+
+    .question { font-size: 28px; margin: 20px; }
 
     .yes-btn {
       width: 120px;
@@ -41,18 +45,12 @@
       font-size: 22px;
       cursor: pointer;
       margin: 30px;
-      z-index: 10;
       background: #e53935;
       color: white;
       box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-      display: none; /* hidden by default */
+      display: none;
     }
-
-    .yes-btn.show {
-      display: inline-block;
-    }
-
-    .yes-btn:hover { transform: scale(1.05); }
+    .yes-btn.show { display: inline-block; }
 
     .no-btn {
       width: 120px;
@@ -61,19 +59,13 @@
       border: none;
       font-size: 22px;
       cursor: pointer;
-      margin: 20px;
-      z-index: 10;
       background: #eee;
       color: #555;
       position: absolute;
       transition: top 0.12s ease, left 0.12s ease;
     }
 
-    /* Meltdown effects */
-    .shake {
-      animation: shake 0.1s infinite;
-    }
-
+    .shake { animation: shake 0.1s infinite; }
     @keyframes shake {
       0% { transform: translate(0, 0); }
       25% { transform: translate(6px, -6px); }
@@ -82,47 +74,25 @@
       100% { transform: translate(-6px, -6px); }
     }
 
-    .run {
-      position: absolute;
-      animation: runAround 2.5s infinite linear;
-    }
-
-    @keyframes runAround {
-      0% { top: 10%; left: 10%; }
-      25% { top: 10%; left: 80%; }
-      50% { top: 80%; left: 80%; }
-      75% { top: 80%; left: 10%; }
-      100% { top: 10%; left: 10%; }
-    }
-
     .meltdown-text {
       font-size: 64px;
       font-weight: 800;
       margin-top: 40px;
-      letter-spacing: 2px;
     }
 
-    .reveal {
-      animation: fadeIn 1.2s ease forwards;
-      opacity: 0;
-    }
-
+    .reveal { animation: fadeIn 1.2s ease forwards; opacity: 0; }
     @keyframes fadeIn {
       from { opacity: 0; transform: scale(0.9); }
       to { opacity: 1; transform: scale(1); }
     }
 
-    .final-text {
-      font-size: 32px;
-      margin-top: 20px;
-    }
+    .final-text { font-size: 32px; margin-top: 20px; }
   </style>
 </head>
 <body>
 
 <div id="app"></div>
 
-<!-- Background audio for page two -->
 <audio id="bgAudio" preload="auto">
   <source src="Namukku Parkkan Munthirithoppukal - The Proposal (mp3cut.net).mp3" type="audio/mpeg">
 </audio>
@@ -131,122 +101,62 @@
   const app = document.getElementById('app');
   const bgAudio = document.getElementById('bgAudio');
   let evadeHandler = null;
+  let fading = false;
+
+  function puppy(face) {
+    return `<div class="puppy">${face}</div>`;
+  }
 
   function stopAudio() {
-    bgAudio.pause();
-    bgAudio.currentTime = 0;
+    bgAudio.pause(); bgAudio.currentTime = 0; bgAudio.volume = 1; fading = false;
   }
 
   function pageOne() {
     stopAudio();
-    app.innerHTML = `
-      <div class="screen">
-        <div class="puppy">🐶</div>
-        <div class="question">Are you Shajiii?</div>
-        <button class="yes-btn show" onclick="pageTwo()">YES</button>
-      </div>`;
+    app.innerHTML = `<div class="screen">${puppy('🐶')}<div class="question">Are you Shajiii?</div><button class="yes-btn show" onclick="pageTwo()">YES</button></div>`;
   }
 
   function pageTwo() {
-    app.innerHTML = `
-      <div class="screen">
-        <div class="puppy">🐶😊</div>
-        <div class="question">nammuk graamangalik chennn raaparkam?......</div>
-        <div class="question" style="font-size:18px; opacity:0.6" id="audioStatus">(listen carefully 💗)</div>
-        <button class="yes-btn" id="q2Yes" onclick="pageThree()">YES</button>
-        <button class="yes-btn show" id="startAudioBtn" style="width:170px;height:60px;border-radius:14px;font-size:16px;display:none;" onclick="startAudio()">Tap to play audio</button>
-      </div>`;
-
-    // Ensure audio is ready
-    bgAudio.currentTime = 0;
-    bgAudio.volume = 0.9;
-    bgAudio.load();
-
-    // Try to play (may be blocked in some preview/sandbox environments)
-    startAudio();
-
-    // Only show YES after audio finishes
-    bgAudio.onended = () => {
-      const yes = document.getElementById('q2Yes');
-      if (yes) yes.classList.add('show');
-      const st = document.getElementById('audioStatus');
-      if (st) st.textContent = '(okay 😌 now click YES)';
+    app.innerHTML = `<div class="screen">${puppy('🐶😊')}<div class="question">nammuk graamangalil chennn raaparkam?......</div><button class="yes-btn" id="q2Yes" onclick="pageThree()">YES</button></div>`;
+    bgAudio.currentTime = 0; bgAudio.volume = 1; bgAudio.play();
+    bgAudio.ontimeupdate = () => {
+      if (!fading && bgAudio.duration && bgAudio.currentTime >= bgAudio.duration - 4) {
+        fading = true;
+        const fade = setInterval(() => {
+          if (bgAudio.volume > 0.05) bgAudio.volume -= 0.05;
+          else { clearInterval(fade); bgAudio.pause(); document.getElementById('q2Yes').classList.add('show'); }
+        }, 200);
+      }
     };
-  }
-
-  function startAudio() {
-    const st = document.getElementById('audioStatus');
-    const btn = document.getElementById('startAudioBtn');
-
-    const p = bgAudio.play();
-    if (p && typeof p.then === 'function') {
-      p.then(() => {
-        if (st) st.textContent = '(playing… 💗)';
-        if (btn) btn.style.display = 'none';
-      }).catch(() => {
-        // In some in-chat previews, audio is blocked or the file isn't reachable.
-        if (st) st.textContent = '(audio blocked in preview — tap button or run locally)';
-        if (btn) btn.style.display = 'inline-block';
-      });
-    }
   }
 
   function pageThree() {
     stopAudio();
-    app.innerHTML = `
-      <div class="screen">
-        <div class="puppy">🐶🥹</div>
-        <div class="question">Will you be my Valentine?</div>
-        <button class="yes-btn show" onclick="meltdown()">YES</button>
-        <button class="no-btn" id="noBtn">NO</button>
-      </div>`;
-
+    app.innerHTML = `<div class="screen">${puppy('🐶🥹')}<div class="question">Will you be my Valentine?</div><button class="yes-btn show" onclick="meltdown()">YES</button><button class="no-btn" id="noBtn">NO</button></div>`;
     const noBtn = document.getElementById('noBtn');
-    noBtn.style.left = '60%';
-    noBtn.style.top = '60%';
-
-    evadeHandler = function (e) {
-      const rect = noBtn.getBoundingClientRect();
-      const dx = e.clientX - (rect.left + rect.width / 2);
-      const dy = e.clientY - (rect.top + rect.height / 2);
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      if (distance < 130) {
-        const x = Math.random() * (window.innerWidth - 140);
-        const y = Math.random() * (window.innerHeight - 140);
-        noBtn.style.left = x + 'px';
-        noBtn.style.top = y + 'px';
+    noBtn.style.left = '60%'; noBtn.style.top = '60%';
+    evadeHandler = e => {
+      const r = noBtn.getBoundingClientRect();
+      const d = Math.hypot(e.clientX-(r.left+r.width/2), e.clientY-(r.top+r.height/2));
+      if (d < 130) {
+        noBtn.style.left = Math.random()*(innerWidth-140)+'px';
+        noBtn.style.top = Math.random()*(innerHeight-140)+'px';
       }
     };
-
     document.addEventListener('mousemove', evadeHandler);
   }
 
   function meltdown() {
-    if (evadeHandler) {
-      document.removeEventListener('mousemove', evadeHandler);
-    }
-
-    app.innerHTML = `
-      <div class="screen shake">
-        <div class="puppy run">🐶</div>
-        <div class="meltdown-text">HE DOESN’T WANT YOU!</div>
-      </div>`;
-
+    document.removeEventListener('mousemove', evadeHandler);
+    app.innerHTML = `<div class="screen shake">${puppy('🐶')}<div class="meltdown-text">I DON’T WANT YOU… SORRY</div></div>`;
     setTimeout(finalReveal, 3000);
   }
 
   function finalReveal() {
-    app.innerHTML = `
-      <div class="screen reveal">
-        <div class="puppy">🐶❤️</div>
-        <div class="final-text">Just kidding 😌<br><br>
-        Happy Valentine’s Day, Shajiii ❤️</div>
-      </div>`;
+    app.innerHTML = `<div class="screen reveal">${puppy('🐶❤️')}<div class="final-text">Just kidding 😌<br><br>Happy Valentine’s Day, Shajiii ❤️</div></div>`;
   }
 
   pageOne();
 </script>
-
 </body>
 </html>
