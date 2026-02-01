@@ -111,43 +111,22 @@
   const bgAudio = document.getElementById('bgAudio');
   const noAudio = document.getElementById('noAudio');
 
-  // ✅ Timer starts when the page loads
-  const pageLoadTime = Date.now();
-  const YES_AUDIO_DELAY = 5; // seconds
+  // ✅ PURE TIMER-BASED FLAG (starts when page loads)
+  const YES_AUDIO_DELAY_MS = 5000;
+  let yesAudioAllowed = false;
+  setTimeout(() => { yesAudioAllowed = true; }, YES_AUDIO_DELAY_MS);
 
   let evadeHandler = null;
   let fading = false;
-  let noAttempts = 0;
-  let noAudioPlayed = false; // (kept, harmless)
-  let audioUnlocked = false;
 
   function stopAudio() {
-    bgAudio.pause(); bgAudio.currentTime = 0; bgAudio.volume = 1; fading = false;
+    // Stop only bg audio
+    bgAudio.pause();
+    bgAudio.currentTime = 0;
+    bgAudio.volume = 1;
+    fading = false;
     document.body.classList.remove('red-bg');
   }
-
-  // Unlock audio on the first real user gesture (helps some browsers)
-  function unlockAudio() {
-    if (audioUnlocked) return;
-    audioUnlocked = true;
-
-    // "Prime" noAudio so later play() won't be blocked on stricter browsers
-    try {
-      noAudio.muted = true;
-      const p = noAudio.play();
-      if (p && typeof p.then === 'function') {
-        p.then(() => {
-          noAudio.pause();
-          noAudio.currentTime = 0;
-          noAudio.muted = false;
-        }).catch(() => {
-          noAudio.muted = false;
-        });
-      }
-    } catch (_) {}
-  }
-
-  document.addEventListener('pointerdown', unlockAudio, { once: true });
 
   function puppy(face) {
     return `<div class="puppy">${face}</div>`;
@@ -155,6 +134,10 @@
 
   function pageOne() {
     stopAudio();
+    // (Optional) Ensure page 3 audio is not playing if user navigates back
+    noAudio.pause();
+    noAudio.currentTime = 0;
+
     app.innerHTML = `
       <div class="screen">
         ${puppy('🐶')}
@@ -174,7 +157,8 @@
       </div>
     `;
 
-    bgAudio.currentTime = 0; bgAudio.volume = 1;
+    bgAudio.currentTime = 0;
+    bgAudio.volume = 1;
     bgAudio.play().catch(() => {});
 
     bgAudio.ontimeupdate = () => {
@@ -193,15 +177,11 @@
     };
   }
 
-  // ✅ Page 3 behavior:
-  // - Timer started when page loads
-  // - Click YES under 5s → normal (no sound)
-  // - Click YES after 5s → play audio
-  // - NO runs away on hover/proximity (same as before)
   function pageThree() {
     stopAudio();
-    noAttempts = 0;
-    noAudioPlayed = false;
+
+    // Make sure the NO-evade handler from any prior visit is removed first
+    if (evadeHandler) document.removeEventListener('pointermove', evadeHandler);
 
     app.innerHTML = `
       <div class="screen">
@@ -218,20 +198,18 @@
     noBtn.style.left = '60%';
     noBtn.style.top = '60%';
 
-    // YES: audio only if she clicks after 5 seconds since page load
+    // ✅ YES: plays audio ONLY if timer has passed 5s since page load
+    // No hover triggers, no priming, no accidental play.
     yesBtn.addEventListener('click', () => {
-      const elapsed = (Date.now() - pageLoadTime) / 1000;
-
-      if (elapsed > YES_AUDIO_DELAY) {
+      if (yesAudioAllowed) {
+        noAudio.pause();
         noAudio.currentTime = 0;
         noAudio.play().catch(() => {});
       }
-
-      // normal YES behavior
       meltdown();
     });
 
-    // NO: run away when pointer gets close
+    // ✅ NO: runs away on hover/proximity (your original behavior)
     evadeHandler = (e) => {
       const r = noBtn.getBoundingClientRect();
       const d = Math.hypot(
@@ -249,13 +227,15 @@
   }
 
   function meltdown() {
-    document.removeEventListener('pointermove', evadeHandler);
+    if (evadeHandler) document.removeEventListener('pointermove', evadeHandler);
+
     app.innerHTML = `
       <div class="screen shake">
         ${puppy('🐶')}
         <div class="meltdown-text">I DON’T WANT YOU… SORRY</div>
       </div>
     `;
+
     setTimeout(finalReveal, 3000);
   }
 
