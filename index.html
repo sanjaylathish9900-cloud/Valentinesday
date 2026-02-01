@@ -111,16 +111,29 @@
   const bgAudio = document.getElementById('bgAudio');
   const noAudio = document.getElementById('noAudio');
 
-  // ✅ PURE TIMER-BASED FLAG (starts when page loads)
-  const YES_AUDIO_DELAY_MS = 5000;
-  let yesAudioAllowed = false;
-  setTimeout(() => { yesAudioAllowed = true; }, YES_AUDIO_DELAY_MS);
+  // ===== Timer starts when the page loads =====
+  const pageLoadTime = Date.now();
+  const YES_AUDIO_DELAY = 5; // seconds
+
+  // ===== HARD GATE: audio may ONLY play when we explicitly allow it =====
+  let allowNoAudioPlay = false;
+
+  // Debug + enforce: if anything tries to play noAudio (hover/old code/etc), stop it.
+  noAudio.addEventListener('play', () => {
+    console.log('[noAudio] play event fired. allowNoAudioPlay =', allowNoAudioPlay);
+    console.trace('[noAudio] play trace (what triggered it?)');
+
+    if (!allowNoAudioPlay) {
+      // Immediately kill any unwanted playback
+      noAudio.pause();
+      noAudio.currentTime = 0;
+    }
+  });
 
   let evadeHandler = null;
   let fading = false;
 
   function stopAudio() {
-    // Stop only bg audio
     bgAudio.pause();
     bgAudio.currentTime = 0;
     bgAudio.volume = 1;
@@ -134,7 +147,9 @@
 
   function pageOne() {
     stopAudio();
-    // (Optional) Ensure page 3 audio is not playing if user navigates back
+
+    // Ensure page-3 audio is never accidentally playing
+    allowNoAudioPlay = false;
     noAudio.pause();
     noAudio.currentTime = 0;
 
@@ -180,8 +195,13 @@
   function pageThree() {
     stopAudio();
 
-    // Make sure the NO-evade handler from any prior visit is removed first
+    // Remove old evade handler (prevents old logic from staying alive)
     if (evadeHandler) document.removeEventListener('pointermove', evadeHandler);
+
+    // Ensure audio is fully stopped before showing page 3
+    allowNoAudioPlay = false;
+    noAudio.pause();
+    noAudio.currentTime = 0;
 
     app.innerHTML = `
       <div class="screen">
@@ -198,18 +218,22 @@
     noBtn.style.left = '60%';
     noBtn.style.top = '60%';
 
-    // ✅ YES: plays audio ONLY if timer has passed 5s since page load
-    // No hover triggers, no priming, no accidental play.
+    // YES: Click under 5s → normal. After 5s → allow audio then play.
     yesBtn.addEventListener('click', () => {
-      if (yesAudioAllowed) {
-        noAudio.pause();
+      const elapsed = (Date.now() - pageLoadTime) / 1000;
+
+      if (elapsed > YES_AUDIO_DELAY) {
+        allowNoAudioPlay = true;
         noAudio.currentTime = 0;
         noAudio.play().catch(() => {});
+        // immediately lock again so NOTHING else can start it
+        allowNoAudioPlay = false;
       }
+
       meltdown();
     });
 
-    // ✅ NO: runs away on hover/proximity (your original behavior)
+    // NO: Run away when pointer gets close (hover/proximity)
     evadeHandler = (e) => {
       const r = noBtn.getBoundingClientRect();
       const d = Math.hypot(
@@ -235,7 +259,6 @@
         <div class="meltdown-text">I DON’T WANT YOU… SORRY</div>
       </div>
     `;
-
     setTimeout(finalReveal, 3000);
   }
 
