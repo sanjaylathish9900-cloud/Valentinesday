@@ -106,7 +106,6 @@
   <source src="apamanich.mp3" type="audio/mpeg">
 </audio>
 
-
 <script>
   const app = document.getElementById('app');
   const bgAudio = document.getElementById('bgAudio');
@@ -116,11 +115,36 @@
   let fading = false;
   let noAttempts = 0;
   let noAudioPlayed = false;
+  let audioUnlocked = false;
 
   function stopAudio() {
     bgAudio.pause(); bgAudio.currentTime = 0; bgAudio.volume = 1; fading = false;
     document.body.classList.remove('red-bg');
   }
+
+  // Unlock audio on the first real user gesture (needed on many phones/Safari)
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+
+    // "Prime" noAudio so later play() won't be blocked
+    try {
+      noAudio.muted = true;
+      const p = noAudio.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => {
+          noAudio.pause();
+          noAudio.currentTime = 0;
+          noAudio.muted = false;
+        }).catch(() => {
+          // Some browsers still block; we'll show a tap prompt later if needed.
+          noAudio.muted = false;
+        });
+      }
+    } catch (_) {}
+  }
+
+  document.addEventListener('pointerdown', unlockAudio, { once: true });
 
   function puppy(face) {
     return `<div class="puppy">${face}</div>`;
@@ -163,32 +187,88 @@
     const noBtn = document.getElementById('noBtn');
     noBtn.style.left = '60%'; noBtn.style.top = '60%';
 
-    evadeHandler = e => {
+    evadeHandler = (e) => {
       const r = noBtn.getBoundingClientRect();
-      const d = Math.hypot(e.clientX-(r.left+r.width/2), e.clientY-(r.top+r.height/2));
+      const d = Math.hypot(
+        e.clientX - (r.left + r.width / 2),
+        e.clientY - (r.top + r.height / 2)
+      );
 
       if (d < 130) {
+        // Count each successful dodge as one attempt
         noAttempts++;
 
+        // Move the NO button away
+        noBtn.style.left = Math.random() * (innerWidth - 140) + 'px';
+        noBtn.style.top  = Math.random() * (innerHeight - 140) + 'px';
+
+        // After 5 attempts, play the audio ONCE
         if (noAttempts >= 5 && !noAudioPlayed) {
           noAudioPlayed = true;
-          noAudio.play();
-
-          noAudio.onended = () => {
-            noBtn.style.display = 'none';
-          };
+          startNoAudio(noBtn);
         }
-
-        noBtn.style.left = Math.random()*(innerWidth-140)+'px';
-        noBtn.style.top = Math.random()*(innerHeight-140)+'px';
       }
     };
 
-    document.addEventListener('mousemove', evadeHandler);
+    // Use pointer events so it works on touch devices too
+    document.addEventListener('pointermove', evadeHandler);
+
+    // Arm audio on the first tap/click anywhere (required on some browsers)
+    if (!noAudioArmed) {
+      noAudioArmed = true;
+      document.addEventListener('click', () => {
+        // A harmless gesture to allow later playback
+        // (We don't force play here; we just ensure the browser treats this page as user-interacted.)
+      }, { once: true });
+    }
+  }
+
+  function startNoAudio(noBtn) {
+    // Always show a small prompt so the user knows something is happening
+    let prompt = document.getElementById('tapPrompt');
+    if (!prompt) {
+      prompt = document.createElement('div');
+      prompt.id = 'tapPrompt';
+      prompt.textContent = '…';
+      prompt.style.position = 'absolute';
+      prompt.style.bottom = '24px';
+      prompt.style.left = '50%';
+      prompt.style.transform = 'translateX(-50%)';
+      prompt.style.padding = '10px 14px';
+      prompt.style.borderRadius = '12px';
+      prompt.style.background = 'rgba(0,0,0,0.08)';
+      prompt.style.color = '#333';
+      prompt.style.fontSize = '14px';
+      prompt.style.zIndex = '9999';
+      document.body.appendChild(prompt);
+    }
+
+    const tryPlay = () => {
+      const p = noAudio.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => {
+          prompt.textContent = '🙂';
+        }).catch(() => {
+          prompt.textContent = 'Tap anywhere 🙂';
+          document.addEventListener('pointerdown', () => {
+            noAudio.play().catch(() => {});
+            prompt.textContent = '🙂';
+          }, { once: true });
+        });
+      }
+    };
+
+    tryPlay();
+
+    noAudio.onended = () => {
+      noBtn.style.display = 'none';
+      const p = document.getElementById('tapPrompt');
+      if (p) p.remove();
+    };
   }
 
   function meltdown() {
-    document.removeEventListener('mousemove', evadeHandler);
+    document.removeEventListener('pointermove', evadeHandler);
     app.innerHTML = `<div class="screen shake">${puppy('🐶')}<div class="meltdown-text">I DON’T WANT YOU… SORRY</div></div>`;
     setTimeout(finalReveal, 3000);
   }
