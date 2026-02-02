@@ -106,10 +106,20 @@
   <source src="apamanich.mp3" type="audio/mpeg">
 </audio>
 
+  <audio id="page1Audio" preload="auto" loop>
+  <source src="enthovaran.mp3" type="audio/mpeg">
+  </audio>
+
+
 <script>
   const app = document.getElementById('app');
   const bgAudio = document.getElementById('bgAudio');
   const noAudio = document.getElementById('noAudio');
+  const page1Audio = document.getElementById('page1Audio');
+  
+  let page1Timer = null;
+  let page1AudioStarted = false;
+
 
   // ===== Timer starts when the page loads =====
   const pageLoadTime = Date.now();
@@ -148,24 +158,61 @@
     return `<div class="puppy">${face}</div>`;
   }
 
-  function pageOne() {
-    stopAudio();
+ function pageOne() {
+  stopAudio();
 
-    // Ensure page-3 audio is never accidentally playing
-    allowNoAudioPlay = false;
-    noAudio.pause();
-    noAudio.currentTime = 0;
+  // Ensure page-3 audio is never accidentally playing
+  allowNoAudioPlay = false;
+  noAudio.pause();
+  noAudio.currentTime = 0;
 
-    app.innerHTML = `
-      <div class="screen">
-        ${puppy('🐶')}
-        <div class="question">Are you Shajiii?</div>
-        <button class="yes-btn show" onclick="pageTwo()">YES</button>
-      </div>
-    `;
-  }
+  // Reset page-1 audio
+  if (page1Timer) clearTimeout(page1Timer);
+  page1Audio.pause();
+  page1Audio.currentTime = 0;
+  page1Audio.volume = 0.7;
+  page1AudioStarted = false;
+
+  app.innerHTML = `
+    <div class="screen">
+      ${puppy('🐶')}
+      <div class="question">Are you Shajiii?</div>
+      <button class="yes-btn show" id="p1Yes">YES</button>
+    </div>
+  `;
+
+  const p1Yes = document.getElementById('p1Yes');
+
+  // Try autoplay after 3 seconds
+  page1Timer = setTimeout(() => {
+    if (page1AudioStarted) return;
+
+    const p = page1Audio.play();
+    if (p) {
+      p.then(() => {
+        page1AudioStarted = true;
+      }).catch(() => {
+        // Autoplay blocked — will start on click instead
+      });
+    }
+  }, 3000);
+
+  // Guarantee start on user interaction
+  p1Yes.addEventListener('click', () => {
+    if (!page1AudioStarted) {
+      page1Audio.play().catch(() => {});
+      page1AudioStarted = true;
+    }
+
+    if (page1Timer) clearTimeout(page1Timer);
+    pageTwo();
+  });
+}
 
   function pageTwo() {
+    page1Audio.pause();
+    page1Audio.currentTime = 0;
+
     document.body.classList.add('red-bg');
     app.innerHTML = `
       <div class="screen">
