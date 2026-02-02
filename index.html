@@ -10,7 +10,10 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: white;
       overflow: hidden;
-      transition: background-color 0.8s ease;
+      transition: background-color 1.2s ease-in-out;
+    }
+
+    body.blue-bg { background: #1565c0; /* deep calm blue */
     }
 
     body.red-bg { background: #d32f2f; }
@@ -221,24 +224,26 @@
 
   // ▶️ Play audio, then go to page 2 AFTER it ends
   p1Yes.addEventListener('click', () => {
-    // prevent double tap
-    p1Yes.disabled = true;
-    p1Yes.style.opacity = "0.85";
-    p1Yes.style.cursor = "not-allowed";
+  // Prevent double tap
+  p1Yes.disabled = true;
 
-    page1Audio.pause();
-    page1Audio.currentTime = 0;
+  // Fade out text + button
+  document.querySelector('.question').style.opacity = '0';
+  p1Yes.style.opacity = '0';
 
-    // when audio ends → page 2
-    page1Audio.addEventListener('ended', () => {
-      pageTwo();
-    }, { once: true });
+  // Smoothly transition to blue
+  document.body.classList.add('blue-bg');
 
-    page1Audio.play().catch(() => {
-      // fallback (very rare)
-      setTimeout(pageTwo, 800);
-    });
-  });
+  // Start audio
+  page1Audio.pause();
+  page1Audio.currentTime = 0;
+  page1Audio.play().catch(() => {});
+
+  // When audio ends → go to next step
+  page1Audio.addEventListener('ended', () => {
+    document.body.classList.remove('blue-bg'); // optional: reset
+    pageTwo(); // or your video step
+  }, { once: true });
 }
 
   function pageTwo() {
