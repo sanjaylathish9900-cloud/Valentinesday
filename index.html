@@ -114,6 +114,11 @@
   <source src="evidelm.mp3" type="audio/mpeg">
   </audio>
 
+  <audio id="finalAudio" preload="auto">
+  <source src="salim.mp3" type="audio/mpeg">
+  </audio>
+
+
 
 
 <script>
@@ -122,6 +127,7 @@
   const noAudio = document.getElementById('noAudio');
   const page1Audio = document.getElementById('page1Audio');
   const meltdownAudio = document.getElementById('meltdownAudio');
+  const finalAudio = document.getElementById('finalAudio');
   
   let page1Timer = null;
   let page1AudioStarted = false;
@@ -404,10 +410,14 @@ function meltdown() {
   });
 }
 
-  function finalReveal() {
-  // stop meltdown audio if it's still playing
+ function finalReveal() {
+  // Stop any previous audio
   meltdownAudio.pause();
   meltdownAudio.currentTime = 0;
+
+  bgAudio.pause(); bgAudio.currentTime = 0;
+  noAudio.pause(); noAudio.currentTime = 0;
+  page1Audio.pause(); page1Audio.currentTime = 0;
 
   app.innerHTML = `
     <div class="screen reveal">
@@ -418,7 +428,18 @@ function meltdown() {
       </div>
     </div>
   `;
+
+  // Play final audio
+  finalAudio.pause();
+  finalAudio.currentTime = 0;
+  finalAudio.loop = false;
+
+  finalAudio.play().catch(() => {
+    // extremely unlikely to fail here, but safe
+    console.log('[finalAudio] autoplay blocked');
+  });
 }
+
   
   pageOne();
 </script>
