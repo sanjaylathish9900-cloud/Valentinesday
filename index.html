@@ -110,12 +110,18 @@
   <source src="enthovaran.mp3" type="audio/mpeg">
   </audio>
 
+  <audio id="meltdownAudio" preload="auto">
+  <source src="evidelm.mp3" type="audio/mpeg">
+  </audio>
+
+
 
 <script>
   const app = document.getElementById('app');
   const bgAudio = document.getElementById('bgAudio');
   const noAudio = document.getElementById('noAudio');
   const page1Audio = document.getElementById('page1Audio');
+  const meltdownAudio = document.getElementById('meltdownAudio');
   
   let page1Timer = null;
   let page1AudioStarted = false;
@@ -334,27 +340,46 @@
   document.addEventListener('pointermove', evadeHandler);
 }
 
-  function meltdown() {
-    if (page3Timer) clearTimeout(page3Timer);
-    if (evadeHandler) document.removeEventListener('pointermove', evadeHandler);
+function meltdown() {
+  // Stop page-3 timer/handlers if they exist
+  if (page3Timer) clearTimeout(page3Timer);
+  if (evadeHandler) document.removeEventListener('pointermove', evadeHandler);
 
-    app.innerHTML = `
-      <div class="screen shake">
-        ${puppy('🐶')}
-        <div class="meltdown-text">I DON’T WANT YOU… SORRY</div>
-      </div>
-    `;
+  // Stop other audios so nothing overlaps
+  bgAudio.pause(); bgAudio.currentTime = 0;
+  noAudio.pause(); noAudio.currentTime = 0;
+  if (typeof page1Audio !== "undefined" && page1Audio) {
+    page1Audio.pause(); page1Audio.currentTime = 0;
+  }
+
+  app.innerHTML = `
+    <div class="screen shake">
+      ${puppy('🐶')}
+      <div class="meltdown-text">I DON’T WANT YOU… SORRY</div>
+    </div>
+  `;
+
+  // Play meltdown audio, then go to finalReveal when it finishes
+  meltdownAudio.pause();
+  meltdownAudio.currentTime = 0;
+
+  // Important: don't stack multiple handlers
+  meltdownAudio.onended = null;
+
+  // When audio ends -> page 5
+  meltdownAudio.onended = () => {
+    meltdownAudio.onended = null;
+    finalReveal();
+  };
+
+  // Start audio (should work because user clicked YES to get here)
+  meltdownAudio.play().catch(() => {
+    // If something blocks playback, fallback to your old 3s behavior
+    meltdownAudio.onended = null;
     setTimeout(finalReveal, 3000);
-  }
+  });
+}
 
-  function finalReveal() {
-    app.innerHTML = `
-      <div class="screen reveal">
-        ${puppy('🐶❤️')}
-        <div class="final-text">Just kidding 😌<br><br>Happy Valentine’s Day, Shajiii ❤️</div>
-      </div>
-    `;
-  }
 
   pageOne();
 </script>
