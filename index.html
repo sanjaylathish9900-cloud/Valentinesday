@@ -404,6 +404,22 @@ function meltdown() {
   });
 }
 
+  function finalReveal() {
+  // stop meltdown audio if it's still playing
+  meltdownAudio.pause();
+  meltdownAudio.currentTime = 0;
+
+  app.innerHTML = `
+    <div class="screen reveal">
+      ${puppy('🐶❤️')}
+      <div class="final-text">
+        Just kidding 😌<br><br>
+        Happy Valentine’s Day, Shajiii ❤️
+      </div>
+    </div>
+  `;
+}
+  
   pageOne();
 </script>
 </body>
