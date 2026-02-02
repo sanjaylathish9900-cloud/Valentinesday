@@ -301,10 +301,9 @@ document.addEventListener('touchstart', startPage1AudioOnce, { once: true });
   noAudio.currentTime = 0;
 
   app.innerHTML = `
-  <div class="screen">
-    <div class="warning-box">
-      ⚠️ I double dare you to say NO
-    </div>
+  <div class="warning-box" id="warningBox">
+  ⚠️ I double dare you to say NO
+</div>
 
     ${puppy('🐶🥹')}
     <div class="question">Will you be my Valentine?</div>
@@ -342,6 +341,15 @@ document.addEventListener('touchstart', startPage1AudioOnce, { once: true });
   page3Timer = setTimeout(() => {
     triggerNoAudio();
   }, PAGE3_AUDIO_DELAY * 1000);
+// Hide warning box when page-3 audio finishes
+noAudio.addEventListener('ended', () => {
+  const warning = document.getElementById('warningBox');
+  if (warning) {
+    warning.style.opacity = '0';
+    warning.style.transform = 'scale(0.9)';
+    setTimeout(() => warning.remove(), 300);
+  }
+}, { once: true });
 
   // YES: just proceed (no "noAudio" here)
   yesBtn.addEventListener('click', () => {
