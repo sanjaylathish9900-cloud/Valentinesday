@@ -128,7 +128,7 @@
   <source src="Namukku Parkkan Munthirithoppukal - The Proposal (mp3cut.net).mp3" type="audio/mpeg">
 </audio>
 
-<audio id="page1Audio" preload="auto" loop>
+<audio id="page1Audio" preload="auto">
   <source src="enthovaran.mp3" type="audio/mpeg">
 </audio>
 
@@ -196,65 +196,50 @@
   }
 
   function pageOne() {
-    stopAudio();
+  stopAudio();
 
-    // Ensure page-3 audio is never accidentally playing
-    allowNoAudioPlay = false;
-    noAudio.pause();
-    noAudio.currentTime = 0;
+  // Ensure page-3 audio is never accidentally playing
+  allowNoAudioPlay = false;
+  noAudio.pause();
+  noAudio.currentTime = 0;
 
-    // Reset page-1 audio
-    if (page1Timer) clearTimeout(page1Timer);
+  // Reset page-1 audio
+  if (page1Timer) clearTimeout(page1Timer);
+  page1Audio.pause();
+  page1Audio.currentTime = 0;
+  page1Audio.volume = 0.7;
+
+  app.innerHTML = `
+    <div class="screen">
+      ${puppy('🐶')}
+      <div class="question">Are you Shajiii?</div>
+      <button class="yes-btn show" id="p1Yes">YES</button>
+    </div>
+  `;
+
+  const p1Yes = document.getElementById('p1Yes');
+
+  // ▶️ Play audio, then go to page 2 AFTER it ends
+  p1Yes.addEventListener('click', () => {
+    // prevent double tap
+    p1Yes.disabled = true;
+    p1Yes.style.opacity = "0.85";
+    p1Yes.style.cursor = "not-allowed";
+
     page1Audio.pause();
     page1Audio.currentTime = 0;
-    page1Audio.volume = 0.7;
-    page1AudioStarted = false;
 
-    app.innerHTML = `
-      <div class="screen">
-        ${puppy('🐶')}
-        <div class="question">Are you Shajiii?</div>
-        <button class="yes-btn show" id="p1Yes">YES</button>
-      </div>
-    `;
-
-    const p1Yes = document.getElementById('p1Yes');
-
-    // Mobile-friendly: start page-1 audio on first interaction anywhere
-    const startPage1AudioOnce = () => {
-      if (!page1AudioStarted) {
-        page1Audio.play().catch(() => {});
-        page1AudioStarted = true;
-      }
-    };
-
-    document.addEventListener('pointerdown', startPage1AudioOnce, { once: true });
-    document.addEventListener('touchstart', startPage1AudioOnce, { once: true });
-
-    // Try autoplay after 3 seconds
-    page1Timer = setTimeout(() => {
-      if (page1AudioStarted) return;
-
-      const p = page1Audio.play();
-      if (p) {
-        p.then(() => {
-          page1AudioStarted = true;
-        }).catch(() => {
-          // autoplay blocked, ok
-        });
-      }
-    }, 3000);
-
-    // YES -> page 2
-    p1Yes.addEventListener('click', () => {
-      if (!page1AudioStarted) {
-        page1Audio.play().catch(() => {});
-        page1AudioStarted = true;
-      }
-      if (page1Timer) clearTimeout(page1Timer);
+    // when audio ends → page 2
+    page1Audio.addEventListener('ended', () => {
       pageTwo();
+    }, { once: true });
+
+    page1Audio.play().catch(() => {
+      // fallback (very rare)
+      setTimeout(pageTwo, 800);
     });
-  }
+  });
+}
 
   function pageTwo() {
     page1Audio.pause();
