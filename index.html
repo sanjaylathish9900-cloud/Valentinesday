@@ -92,6 +92,26 @@
     }
 
     .final-text { font-size: 32px; margin-top: 20px; }
+.warning-box {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #b71c1c;
+  background: #ffeaea;
+  border: 2px dashed #e53935;
+  border-radius: 12px;
+  z-index: 10;
+  animation: tease 1.4s infinite ease-in-out;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+}
+
+@keyframes tease {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.05) rotate(-1deg); }
+}
   </style>
 </head>
 <body>
@@ -281,13 +301,18 @@ document.addEventListener('touchstart', startPage1AudioOnce, { once: true });
   noAudio.currentTime = 0;
 
   app.innerHTML = `
-    <div class="screen">
-      ${puppy('🐶🥹')}
-      <div class="question">Will you be my Valentine?</div>
-      <button class="yes-btn show" id="yesBtn">YES</button>
-      <button class="no-btn" id="noBtn">NO</button>
+  <div class="screen">
+    <div class="warning-box">
+      ⚠️ I double dare you to say NO
     </div>
-  `;
+
+    ${puppy('🐶🥹')}
+    <div class="question">Will you be my Valentine?</div>
+
+    <button class="yes-btn show" id="yesBtn">YES</button>
+    <button class="no-btn" id="noBtn">NO</button>
+  </div>
+`;
 
   const noBtn = document.getElementById('noBtn');
   const yesBtn = document.getElementById('yesBtn');
