@@ -13,10 +13,8 @@
       transition: background-color 1.2s ease-in-out;
     }
 
-    body.blue-bg { background: #1565c0; /* deep calm blue */
-    }
-
-    body.red-bg { background: #d32f2f; }
+    body.blue-bg { background: #1565c0; } /* deep calm blue */
+    body.red-bg  { background: #d32f2f; }
 
     .screen {
       width: 100vw;
@@ -43,7 +41,7 @@
       50% { transform: translateY(-6px); }
     }
 
-    .question { font-size: 28px; margin: 20px; }
+    .question { font-size: 28px; margin: 20px; transition: opacity .6s ease; }
 
     .yes-btn {
       width: 120px;
@@ -57,6 +55,7 @@
       color: white;
       box-shadow: 0 8px 16px rgba(0,0,0,0.2);
       display: none;
+      transition: opacity .6s ease;
     }
     .yes-btn.show { display: inline-block; }
 
@@ -101,7 +100,6 @@
       position: fixed;
       top: 18px;
       right: 18px;
-
       padding: 10px 14px;
       font-size: 14px;
       font-weight: 700;
@@ -109,17 +107,23 @@
       background: #ffeaea;
       border: 2px dashed #e53935;
       border-radius: 12px;
-
       z-index: 9999;
       animation: tease 1.4s infinite ease-in-out;
       box-shadow: 0 6px 14px rgba(0,0,0,0.15);
-
       transition: opacity 0.3s ease, transform 0.3s ease;
     }
 
     @keyframes tease {
       0%, 100% { transform: scale(1) rotate(0deg); }
       50% { transform: scale(1.05) rotate(-1deg); }
+    }
+
+    /* small “loading” text on page 1 during blue */
+    .loading {
+      margin-top: 10px;
+      font-size: 16px;
+      opacity: 0.9;
+      color: white;
     }
   </style>
 </head>
@@ -149,14 +153,12 @@
 
 <script>
   const app = document.getElementById('app');
+
   const bgAudio = document.getElementById('bgAudio');
-  const noAudio = document.getElementById('noAudio');
   const page1Audio = document.getElementById('page1Audio');
+  const noAudio = document.getElementById('noAudio');
   const meltdownAudio = document.getElementById('meltdownAudio');
   const finalAudio = document.getElementById('finalAudio');
-
-  let page1Timer = null;
-  let page1AudioStarted = false;
 
   // HARD GATE for noAudio
   let allowNoAudioPlay = false;
@@ -167,10 +169,10 @@
   let page3Timer = null;
   let noAudioPlayed = false;
 
-  // ✅ FIX: track pageTwo fade interval so we can kill it
+  // track pageTwo fade interval so we can kill it
   let fadeInterval = null;
 
-  // Debug + enforce: if anything tries to play noAudio, stop it.
+  // If anything tries to play noAudio without permission, stop it.
   noAudio.addEventListener('play', () => {
     if (!allowNoAudioPlay) {
       noAudio.pause();
@@ -179,7 +181,7 @@
   });
 
   function stopAudio() {
-    // ✅ FIX: kill pageTwo timers/handlers so they don’t mess later pages
+    // kill pageTwo timers/handlers so they don’t mess later pages
     if (fadeInterval) {
       clearInterval(fadeInterval);
       fadeInterval = null;
@@ -199,59 +201,74 @@
   }
 
   function pageOne() {
-  stopAudio();
+    stopAudio();
 
-  // Ensure page-3 audio is never accidentally playing
-  allowNoAudioPlay = false;
-  noAudio.pause();
-  noAudio.currentTime = 0;
+    // safety: ensure other audios are stopped
+    allowNoAudioPlay = false;
+    noAudio.pause(); noAudio.currentTime = 0;
+    bgAudio.pause(); bgAudio.currentTime = 0;
 
-  // Reset page-1 audio
-  if (page1Timer) clearTimeout(page1Timer);
-  page1Audio.pause();
-  page1Audio.currentTime = 0;
-  page1Audio.volume = 0.7;
+    // reset page1 audio
+    page1Audio.pause();
+    page1Audio.currentTime = 0;
+    page1Audio.volume = 0.85;
 
-  app.innerHTML = `
-    <div class="screen">
-      ${puppy('🐶')}
-      <div class="question">Are you Shajiii?</div>
-      <button class="yes-btn show" id="p1Yes">YES</button>
-    </div>
-  `;
+    // reset backgrounds
+    document.body.classList.remove('red-bg');
+    document.body.classList.remove('blue-bg');
 
-  const p1Yes = document.getElementById('p1Yes');
+    app.innerHTML = `
+      <div class="screen">
+        ${puppy('🐶')}
+        <div class="question" id="p1Question">Are you Shajiii?</div>
+        <button class="yes-btn show" id="p1Yes">YES</button>
+      </div>
+    `;
 
-  // ▶️ Play audio, then go to page 2 AFTER it ends
-p1Yes.addEventListener('click', () => {
-  // Prevent double tap
-  p1Yes.disabled = true;
+    const p1Yes = document.getElementById('p1Yes');
+    const p1Question = document.getElementById('p1Question');
 
-  // Fade out text + button
-  document.querySelector('.question').style.opacity = '0';
-  p1Yes.style.opacity = '0';
+    p1Yes.addEventListener('click', () => {
+      // prevent double tap
+      p1Yes.disabled = true;
 
-  // Smoothly transition to blue
-  document.body.classList.add('blue-bg');
+      // fade out text + button
+      p1Question.style.opacity = '0';
+      p1Yes.style.opacity = '0';
 
-  // Start audio
-  page1Audio.pause();
-  page1Audio.currentTime = 0;
-  page1Audio.play().catch(() => {});
+      // go blue smoothly
+      document.body.classList.add('blue-bg');
 
-  // When audio ends → go to next step
-  page1Audio.addEventListener(
-    'ended',
-    () => {
-      document.body.classList.remove('blue-bg'); // optional reset
-      pageTwo(); // next page
-    },
-    { once: true }
-  );
-}); // ✅ CLOSE addEventListener
-}   // ✅ CLOSE pageOne()
+      // show tiny loading text (optional, looks “active”)
+      setTimeout(() => {
+        const screen = app.querySelector('.screen');
+        if (screen) {
+          const loading = document.createElement('div');
+          loading.className = 'loading';
+          loading.textContent = 'loading... 💙';
+          screen.appendChild(loading);
+        }
+      }, 200);
+
+      // play audio (allowed because it's a user click)
+      page1Audio.pause();
+      page1Audio.currentTime = 0;
+
+      page1Audio.play().catch(() => {
+        // if play fails, still continue after a short moment
+        setTimeout(pageTwo, 700);
+      });
+
+      // when audio ends -> next page
+      page1Audio.addEventListener('ended', () => {
+        document.body.classList.remove('blue-bg'); // optional reset
+        pageTwo();
+      }, { once: true });
+    });
+  }
 
   function pageTwo() {
+    // stop page1 audio just in case
     page1Audio.pause();
     page1Audio.currentTime = 0;
 
@@ -267,7 +284,7 @@ p1Yes.addEventListener('click', () => {
 
     const q2Yes = document.getElementById('q2Yes');
 
-    // ✅ IMPORTANT: stop pageTwo audio handlers BEFORE going to pageThree
+    // go to page 3 on click
     q2Yes.addEventListener('click', () => {
       stopAudio();
       pageThree();
@@ -299,13 +316,9 @@ p1Yes.addEventListener('click', () => {
   function pageThree() {
     stopAudio();
 
-    // Remove old evade handler
     if (evadeHandler) document.removeEventListener('pointermove', evadeHandler);
-
-    // Clear any previous page-3 timer
     if (page3Timer) clearTimeout(page3Timer);
 
-    // Reset page-3 audio state
     noAudioPlayed = false;
     allowNoAudioPlay = false;
     noAudio.pause();
@@ -326,11 +339,10 @@ p1Yes.addEventListener('click', () => {
     const noBtn = document.getElementById('noBtn');
     const yesBtn = document.getElementById('yesBtn');
 
-    // center-ish initial
+    // initial position
     noBtn.style.left = '60%';
     noBtn.style.top = '60%';
 
-    // Helper: play the "no" audio ONCE
     function triggerNoAudio() {
       if (noAudioPlayed) return;
       noAudioPlayed = true;
@@ -346,13 +358,10 @@ p1Yes.addEventListener('click', () => {
       }
     }
 
-    // After 5 seconds -> play noAudio
-    const PAGE3_AUDIO_DELAY = 5;
-    page3Timer = setTimeout(() => {
-      triggerNoAudio();
-    }, PAGE3_AUDIO_DELAY * 1000);
+    // after 5s -> play noAudio
+    page3Timer = setTimeout(triggerNoAudio, 5000);
 
-    // Hide warning box when noAudio finishes
+    // hide warning when noAudio ends
     noAudio.addEventListener('ended', () => {
       const warning = document.getElementById('warningBox');
       if (warning) {
@@ -362,16 +371,13 @@ p1Yes.addEventListener('click', () => {
       }
     }, { once: true });
 
-    // YES -> meltdown
     yesBtn.addEventListener('click', () => {
       if (page3Timer) clearTimeout(page3Timer);
       meltdown();
     });
 
-    // "tries" when NO runs away
     let tries = 0;
     let lastTryAt = 0;
-    const TRY_COOLDOWN_MS = 350;
 
     evadeHandler = (e) => {
       const r = noBtn.getBoundingClientRect();
@@ -381,19 +387,14 @@ p1Yes.addEventListener('click', () => {
       );
 
       if (d < 130) {
-        // Move button
         noBtn.style.left = Math.random() * (innerWidth - 140) + 'px';
         noBtn.style.top  = Math.random() * (innerHeight - 140) + 'px';
 
-        // Count attempt
         const now = Date.now();
-        if (now - lastTryAt > TRY_COOLDOWN_MS) {
+        if (now - lastTryAt > 350) {
           lastTryAt = now;
           tries += 1;
-
-          if (tries >= 5) {
-            triggerNoAudio();
-          }
+          if (tries >= 5) triggerNoAudio();
         }
       }
     };
@@ -407,7 +408,6 @@ p1Yes.addEventListener('click', () => {
     if (page3Timer) clearTimeout(page3Timer);
     if (evadeHandler) document.removeEventListener('pointermove', evadeHandler);
 
-    // Stop other audios
     bgAudio.pause(); bgAudio.currentTime = 0;
     noAudio.pause(); noAudio.currentTime = 0;
     page1Audio.pause(); page1Audio.currentTime = 0;
@@ -425,25 +425,18 @@ p1Yes.addEventListener('click', () => {
 
     if (meltdownFallbackTimer) clearTimeout(meltdownFallbackTimer);
 
-    const onEnd = () => {
-      finalReveal();
-    };
-    meltdownAudio.addEventListener('ended', onEnd, { once: true });
+    meltdownAudio.addEventListener('ended', finalReveal, { once: true });
 
     const armFallback = () => {
       if (Number.isFinite(meltdownAudio.duration) && meltdownAudio.duration > 0) {
-        meltdownFallbackTimer = setTimeout(() => {
-          finalReveal();
-        }, meltdownAudio.duration * 1000 + 250);
+        meltdownFallbackTimer = setTimeout(finalReveal, meltdownAudio.duration * 1000 + 250);
       }
     };
 
     if (meltdownAudio.readyState >= 1) armFallback();
     else meltdownAudio.addEventListener('loadedmetadata', armFallback, { once: true });
 
-    meltdownAudio.play().catch(() => {
-      setTimeout(finalReveal, 3000);
-    });
+    meltdownAudio.play().catch(() => setTimeout(finalReveal, 3000));
   }
 
   function finalReveal() {
@@ -469,6 +462,7 @@ p1Yes.addEventListener('click', () => {
     finalAudio.play().catch(() => {});
   }
 
+  // start
   pageOne();
 </script>
 
