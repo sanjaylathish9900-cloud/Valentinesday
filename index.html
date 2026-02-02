@@ -340,12 +340,13 @@
   document.addEventListener('pointermove', evadeHandler);
 }
 
+let meltdownFallbackTimer = null;
+
 function meltdown() {
-  // Stop page-3 timer/handlers if they exist
   if (page3Timer) clearTimeout(page3Timer);
   if (evadeHandler) document.removeEventListener('pointermove', evadeHandler);
 
-  // Stop other audios so nothing overlaps
+  // Stop other audios
   bgAudio.pause(); bgAudio.currentTime = 0;
   noAudio.pause(); noAudio.currentTime = 0;
   if (typeof page1Audio !== "undefined" && page1Audio) {
@@ -359,27 +360,49 @@ function meltdown() {
     </div>
   `;
 
-  // Play meltdown audio, then go to finalReveal when it finishes
+  // Reset meltdown audio
   meltdownAudio.pause();
   meltdownAudio.currentTime = 0;
+  meltdownAudio.loop = false;
 
-  // Important: don't stack multiple handlers
-  meltdownAudio.onended = null;
+  // Clear any previous fallback timer
+  if (meltdownFallbackTimer) clearTimeout(meltdownFallbackTimer);
 
-  // When audio ends -> page 5
-  meltdownAudio.onended = () => {
-    meltdownAudio.onended = null;
-    finalReveal();
+  // ---- DEBUG: log when audio ends ----
+  const onEnd = () => {
+    console.log('[meltdownAudio] ended fired ✅');
+    try {
+      finalReveal();
+      console.log('[meltdownAudio] finalReveal() called ✅');
+    } catch (err) {
+      console.error('[meltdownAudio] finalReveal() crashed ❌', err);
+    }
   };
 
-  // Start audio (should work because user clicked YES to get here)
-  meltdownAudio.play().catch(() => {
-    // If something blocks playback, fallback to your old 3s behavior
-    meltdownAudio.onended = null;
+  // Use addEventListener (more reliable than onended)
+  meltdownAudio.addEventListener('ended', onEnd, { once: true });
+
+  // Backup fallback: force transition after duration (+250ms)
+  const armFallback = () => {
+    if (Number.isFinite(meltdownAudio.duration) && meltdownAudio.duration > 0) {
+      meltdownFallbackTimer = setTimeout(() => {
+        console.log('[meltdownAudio] fallback timer fired ✅');
+        try { finalReveal(); } catch (err) { console.error(err); }
+      }, meltdownAudio.duration * 1000 + 250);
+    }
+  };
+
+  if (meltdownAudio.readyState >= 1) armFallback();
+  else meltdownAudio.addEventListener('loadedmetadata', armFallback, { once: true });
+
+  // Play
+  meltdownAudio.play().then(() => {
+    console.log('[meltdownAudio] playing ✅');
+  }).catch((err) => {
+    console.error('[meltdownAudio] play() blocked ❌', err);
     setTimeout(finalReveal, 3000);
   });
 }
-
 
   pageOne();
 </script>
