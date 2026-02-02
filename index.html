@@ -257,44 +257,44 @@ document.addEventListener('touchstart', startPage1AudioOnce, { once: true });
 }
 
   function pageTwo() {
-    page1Audio.pause();
-    page1Audio.currentTime = 0;
+  page1Audio.pause();
+  page1Audio.currentTime = 0;
 
-    document.body.classList.add('red-bg');
-    app.innerHTML = `
-  <div class="screen">
-    <div class="warning-box" id="warningBox">
-      ⚠️ I double dare you to say NO
+  document.body.classList.add('red-bg');
+  app.innerHTML = `
+    <div class="screen">
+      ${puppy('🐶😊')}
+      <div class="question">nammuk graamangalil chennn raaparkam?......</div>
+      <button class="yes-btn" id="q2Yes">YES</button>
     </div>
+  `;
 
-    ${puppy('🐶🥹')}
-    <div class="question">Will you be my Valentine?</div>
+  const q2Yes = document.getElementById('q2Yes');
 
-    <button class="yes-btn show" id="yesBtn">YES</button>
-    <button class="no-btn" id="noBtn">NO</button>
-  </div>
-`;
+  // Click -> go to page 3
+  q2Yes.addEventListener('click', () => {
+    pageThree();
+  });
 
-    bgAudio.currentTime = 0;
-    bgAudio.volume = 1;
-    bgAudio.play().catch(() => {});
+  bgAudio.currentTime = 0;
+  bgAudio.volume = 1;
+  bgAudio.play().catch(() => {});
 
-    bgAudio.ontimeupdate = () => {
-      if (!fading && bgAudio.duration && bgAudio.currentTime >= bgAudio.duration - 4) {
-        fading = true;
-        const fade = setInterval(() => {
-          if (bgAudio.volume > 0.05) bgAudio.volume -= 0.05;
-          else {
-            clearInterval(fade);
-            bgAudio.pause();
-            document.body.classList.remove('red-bg');
-            document.getElementById('q2Yes').classList.add('show');
-          }
-        }, 200);
-      }
-    };
-  }
-
+  bgAudio.ontimeupdate = () => {
+    if (!fading && bgAudio.duration && bgAudio.currentTime >= bgAudio.duration - 4) {
+      fading = true;
+      const fade = setInterval(() => {
+        if (bgAudio.volume > 0.05) bgAudio.volume -= 0.05;
+        else {
+          clearInterval(fade);
+          bgAudio.pause();
+          document.body.classList.remove('red-bg');
+          q2Yes.classList.add('show');   // ✅ show button after fade
+        }
+      }, 200);
+    }
+  };
+}
   function pageThree() {
   stopAudio();
 
@@ -310,10 +310,11 @@ document.addEventListener('touchstart', startPage1AudioOnce, { once: true });
   noAudio.pause();
   noAudio.currentTime = 0;
 
-  app.innerHTML = `
-  <div class="warning-box" id="warningBox">
-  ⚠️ I double dare you to say NO
-</div>
+app.innerHTML = `
+  <div class="screen">
+    <div class="warning-box" id="warningBox">
+      ⚠️ I double dare you to say NO
+    </div>
 
     ${puppy('🐶🥹')}
     <div class="question">Will you be my Valentine?</div>
