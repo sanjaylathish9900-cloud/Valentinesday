@@ -132,6 +132,9 @@
 
   let evadeHandler = null;
   let fading = false;
+  let page3Timer = null;
+  let noAudioPlayed = false;
+
 
   function stopAudio() {
     bgAudio.pause();
@@ -193,64 +196,99 @@
   }
 
   function pageThree() {
-    stopAudio();
+  stopAudio();
 
-    // Remove old evade handler (prevents old logic from staying alive)
-    if (evadeHandler) document.removeEventListener('pointermove', evadeHandler);
+  // Remove old evade handler (prevents old logic from staying alive)
+  if (evadeHandler) document.removeEventListener('pointermove', evadeHandler);
 
-    // Ensure audio is fully stopped before showing page 3
-    allowNoAudioPlay = false;
-    noAudio.pause();
+  // Clear any previous page-3 timer
+  if (page3Timer) clearTimeout(page3Timer);
+
+  // Reset page-3 audio state
+  noAudioPlayed = false;
+  allowNoAudioPlay = false;
+  noAudio.pause();
+  noAudio.currentTime = 0;
+
+  app.innerHTML = `
+    <div class="screen">
+      ${puppy('🐶🥹')}
+      <div class="question">Will you be my Valentine?</div>
+      <button class="yes-btn show" id="yesBtn">YES</button>
+      <button class="no-btn" id="noBtn">NO</button>
+    </div>
+  `;
+
+  const noBtn = document.getElementById('noBtn');
+  const yesBtn = document.getElementById('yesBtn');
+
+  noBtn.style.left = '60%';
+  noBtn.style.top = '60%';
+
+  // Helper: play the "no" audio ONCE (hard-gated)
+  function triggerNoAudio() {
+    if (noAudioPlayed) return;
+    noAudioPlayed = true;
+
+    allowNoAudioPlay = true;
     noAudio.currentTime = 0;
 
-    app.innerHTML = `
-      <div class="screen">
-        ${puppy('🐶🥹')}
-        <div class="question">Will you be my Valentine?</div>
-        <button class="yes-btn show" id="yesBtn">YES</button>
-        <button class="no-btn" id="noBtn">NO</button>
-      </div>
-    `;
-
-    const noBtn = document.getElementById('noBtn');
-    const yesBtn = document.getElementById('yesBtn');
-
-    noBtn.style.left = '60%';
-    noBtn.style.top = '60%';
-
-    // YES: Click under 5s → normal. After 5s → allow audio then play.
-    yesBtn.addEventListener('click', () => {
-      const elapsed = (Date.now() - pageLoadTime) / 1000;
-
-      if (elapsed > YES_AUDIO_DELAY) {
-        allowNoAudioPlay = true;
-        noAudio.currentTime = 0;
-        noAudio.play().catch(() => {});
-        // immediately lock again so NOTHING else can start it
-        allowNoAudioPlay = false;
-      }
-
-      meltdown();
-    });
-
-    // NO: Run away when pointer gets close (hover/proximity)
-    evadeHandler = (e) => {
-      const r = noBtn.getBoundingClientRect();
-      const d = Math.hypot(
-        e.clientX - (r.left + r.width / 2),
-        e.clientY - (r.top + r.height / 2)
-      );
-
-      if (d < 130) {
-        noBtn.style.left = Math.random() * (innerWidth - 140) + 'px';
-        noBtn.style.top  = Math.random() * (innerHeight - 140) + 'px';
-      }
-    };
-
-    document.addEventListener('pointermove', evadeHandler);
+    const p = noAudio.play();
+    if (p && typeof p.finally === "function") {
+      p.finally(() => { allowNoAudioPlay = false; });
+    } else {
+      // fallback
+      setTimeout(() => { allowNoAudioPlay = false; }, 200);
+    }
   }
 
+  // Rule #2: if they stay on page 3 for 5 seconds → play audio
+  const PAGE3_AUDIO_DELAY = 5; // seconds
+  page3Timer = setTimeout(() => {
+    triggerNoAudio();
+  }, PAGE3_AUDIO_DELAY * 1000);
+
+  // YES: just proceed (no "noAudio" here)
+  yesBtn.addEventListener('click', () => {
+    if (page3Timer) clearTimeout(page3Timer);
+    meltdown();
+  });
+
+  // Rule #1: count "tries" when NO runs away
+  let tries = 0;
+  let lastTryAt = 0;
+  const TRY_COOLDOWN_MS = 350; // prevents 1 hover from counting as 10 tries
+
+  evadeHandler = (e) => {
+    const r = noBtn.getBoundingClientRect();
+    const d = Math.hypot(
+      e.clientX - (r.left + r.width / 2),
+      e.clientY - (r.top + r.height / 2)
+    );
+
+    if (d < 130) {
+      // Move button
+      noBtn.style.left = Math.random() * (innerWidth - 140) + 'px';
+      noBtn.style.top  = Math.random() * (innerHeight - 140) + 'px';
+
+      // Count attempt (with cooldown)
+      const now = Date.now();
+      if (now - lastTryAt > TRY_COOLDOWN_MS) {
+        lastTryAt = now;
+        tries += 1;
+
+        if (tries >= 5) {
+          triggerNoAudio();
+        }
+      }
+    }
+  };
+
+  document.addEventListener('pointermove', evadeHandler);
+}
+
   function meltdown() {
+    if (page3Timer) clearTimeout(page3Timer);
     if (evadeHandler) document.removeEventListener('pointermove', evadeHandler);
 
     app.innerHTML = `
