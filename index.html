@@ -223,7 +223,7 @@
   const p1Yes = document.getElementById('p1Yes');
 
   // ▶️ Play audio, then go to page 2 AFTER it ends
-  p1Yes.addEventListener('click', () => {
+p1Yes.addEventListener('click', () => {
   // Prevent double tap
   p1Yes.disabled = true;
 
@@ -240,11 +240,16 @@
   page1Audio.play().catch(() => {});
 
   // When audio ends → go to next step
-  page1Audio.addEventListener('ended', () => {
-    document.body.classList.remove('blue-bg'); // optional: reset
-    pageTwo(); // or your video step
-  }, { once: true });
-}
+  page1Audio.addEventListener(
+    'ended',
+    () => {
+      document.body.classList.remove('blue-bg'); // optional reset
+      pageTwo(); // next page
+    },
+    { once: true }
+  );
+}); // ✅ CLOSE addEventListener
+}   // ✅ CLOSE pageOne()
 
   function pageTwo() {
     page1Audio.pause();
