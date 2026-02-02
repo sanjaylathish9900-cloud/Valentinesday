@@ -34,6 +34,59 @@
       color: black;
     }
 
+    .video-stage {
+  transition: opacity 1.2s ease;
+}
+
+.video-stage.fade-out {
+  opacity: 0;
+}
+
+    /* darker blue */
+body.blue-bg { background: #0d47a1; }
+
+/* video overlay */
+.video-stage{
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 9998;
+  opacity: 1;
+  transition: opacity 1.2s ease; /* slower */
+}
+.video-stage.fade-out{ opacity: 0; }
+
+.video-card{
+  width: min(520px, 92vw);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(6px);
+}
+.video-card video{
+  width: 100%;
+  display: block;
+  border-radius: 18px;
+  background: black;
+}
+
+.tap-to-play{
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.9);
+  color: #0d47a1;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.18);
+}
+
     body.red-bg .screen { color: white; }
 
     .puppy {
@@ -208,129 +261,164 @@
     // - No loading text
     // - After audio ends => pageTwo()
     // -------------------------
-    function pageOne() {
-      stopAudio();
+   function pageOne() {
+  stopAudio();
 
-      // ensure these are off
-      document.body.classList.remove('blue-bg');
-      allowNoAudioPlay = false;
-      noAudio.pause();
-      noAudio.currentTime = 0;
+  // Reset backgrounds
+  document.body.classList.remove('red-bg');
+  document.body.classList.remove('blue-bg');
 
-      // reset page1Audio
-      page1Audio.pause();
-      page1Audio.currentTime = 0;
-      page1Audio.volume = 0.85;
+  // Reset audios
+  allowNoAudioPlay = false;
+  noAudio.pause();
+  noAudio.currentTime = 0;
 
-      app.innerHTML = `
-        <div class="screen">
-          ${puppy('🐶')}
-          <div class="question" id="p1Question">Are you Shajiii?</div>
-          <button class="yes-btn show" id="p1Yes">YES</button>
+  page1Audio.pause();
+  page1Audio.currentTime = 0;
+  page1Audio.volume = 0.85;
+
+  app.innerHTML = `
+    <div class="screen">
+      ${puppy('🐶')}
+      <div class="question" id="p1Question">Are you Shajiii?</div>
+      <button class="yes-btn show" id="p1Yes">YES</button>
+    </div>
+  `;
+
+  const p1Yes = document.getElementById('p1Yes');
+  const p1Question = document.getElementById('p1Question');
+
+  // ✅ define handler so we can remove it if needed
+  const onP1AudioEnd = () => {
+    playPage1VideoThenNext();
+  };
+
+  p1Yes.addEventListener('click', () => {
+    // prevent double tap
+    p1Yes.disabled = true;
+
+    // fade out text + button
+    p1Question.style.opacity = '0';
+    p1Yes.style.opacity = '0';
+
+    // ensure we don't stack ended listeners
+    page1Audio.removeEventListener('ended', onP1AudioEnd);
+
+    // play audio first (user gesture)
+    page1Audio.pause();
+    page1Audio.currentTime = 0;
+
+    page1Audio.play().then(() => {
+      // start blue transition DURING audio
+      setTimeout(() => {
+        document.body.classList.add('blue-bg');
+      }, 250);
+    }).catch(() => {
+      // fallback
+      document.body.classList.add('blue-bg');
+      // if audio fails, still continue after a moment
+      setTimeout(playPage1VideoThenNext, 700);
+    });
+
+    // when audio ends → play video
+    page1Audio.addEventListener('ended', onP1AudioEnd, { once: true });
+  });
+}
+
+function playPage1VideoThenNext() {
+  // keep blue background ON during video
+  document.body.classList.add('blue-bg');
+
+  app.innerHTML = `
+    <div class="screen">
+      <div class="video-stage" id="videoStage">
+        <div class="video-card">
+          <video id="p1Video" preload="auto" playsinline>
+            <source src="sanjay.mp4?v=1" type="video/mp4">
+          </video>
         </div>
-      `;
+        <button class="tap-to-play" id="tapPlayBtn" style="display:none;">
+          Tap to play ▶
+        </button>
+      </div>
+    </div>
+  `;
 
-      const p1Yes = document.getElementById('p1Yes');
-      const p1Question = document.getElementById('p1Question');
+  const video = document.getElementById('p1Video');
+  const stage = document.getElementById('videoStage');
+  const tapBtn = document.getElementById('tapPlayBtn');
 
-      p1Yes.addEventListener('click', () => {
-        // prevent double tap
-        p1Yes.disabled = true;
+  const goNextSlow = () => {
+    stage.classList.add('fade-out'); // slow fade
+    setTimeout(() => {
+      document.body.classList.remove('blue-bg'); // remove blue before page 2
+      pageTwo();
+    }, 1200); // slower so it doesn't feel rushed
+  };
 
-        // fade out text + button
-        p1Question.style.opacity = '0';
-        p1Yes.style.opacity = '0';
+  video.addEventListener('ended', goNextSlow, { once: true });
 
-        // reset & play audio
-        page1Audio.pause();
-        page1Audio.currentTime = 0;
+  // Try autoplay (may fail on some phones)
+  const p = video.play();
+  if (p) {
+    p.catch(() => {
+      tapBtn.style.display = 'inline-block';
+      tapBtn.addEventListener('click', () => {
+        tapBtn.style.display = 'none';
+        video.play().catch(() => {});
+      }, { once: true });
+    });
+  }
+}
 
-        let blueStarted = false;
-        const startBlue = () => {
-          if (blueStarted) return;
-          blueStarted = true;
-          document.body.classList.add('blue-bg');
-        };
+// -------------------------
+// PAGE 2
+// -------------------------
+function pageTwo() {
+  // stop page1 audio
+  page1Audio.pause();
+  page1Audio.currentTime = 0;
 
-        // Start blue only when audio actually starts
-        page1Audio.addEventListener('playing', startBlue, { once: true });
+  stopAudio();
+  document.body.classList.add('red-bg');
 
-        // Extra reliable: when time moves
-        const onTimeUpdate = () => {
-          if (page1Audio.currentTime > 0.05) {
-            startBlue();
-            page1Audio.removeEventListener('timeupdate', onTimeUpdate);
-          }
-        };
-        page1Audio.addEventListener('timeupdate', onTimeUpdate);
+  app.innerHTML = `
+    <div class="screen">
+      ${puppy('🐶😊')}
+      <div class="question">nammuk graamangalil chennn raaparkam?......</div>
+      <button class="yes-btn" id="q2Yes">YES</button>
+    </div>
+  `;
 
-        // Fallback (still after click) if events are weird
-        setTimeout(startBlue, 350);
+  const q2Yes = document.getElementById('q2Yes');
 
-        page1Audio.play().catch(() => {
-          // If somehow blocked, still transition and continue
-          startBlue();
-          setTimeout(pageTwo, 700);
-        });
+  q2Yes.addEventListener('click', () => {
+    stopAudio();
+    pageThree();
+  });
 
-        page1Audio.addEventListener('ended', () => {
-          document.body.classList.remove('blue-bg'); // optional reset
-          pageTwo();
-        }, { once: true });
-      });
-    }
+  bgAudio.currentTime = 0;
+  bgAudio.volume = 1;
+  bgAudio.play().catch(() => {});
 
-    // -------------------------
-    // PAGE 2
-    // - plays bgAudio immediately
-    // - fades out near end and reveals YES
-    // - click YES => pageThree()
-    // -------------------------
-    function pageTwo() {
-      // stop page1 audio
-      page1Audio.pause();
-      page1Audio.currentTime = 0;
+  bgAudio.ontimeupdate = () => {
+    if (!fading && bgAudio.duration && bgAudio.currentTime >= bgAudio.duration - 4) {
+      fading = true;
 
-      stopAudio();
-      document.body.classList.add('red-bg');
+      fadeInterval = setInterval(() => {
+        if (bgAudio.volume > 0.05) bgAudio.volume -= 0.05;
+        else {
+          clearInterval(fadeInterval);
+          fadeInterval = null;
 
-      app.innerHTML = `
-        <div class="screen">
-          ${puppy('🐶😊')}
-          <div class="question">nammuk graamangalil chennn raaparkam?......</div>
-          <button class="yes-btn" id="q2Yes">YES</button>
-        </div>
-      `;
-
-      const q2Yes = document.getElementById('q2Yes');
-
-      q2Yes.addEventListener('click', () => {
-        stopAudio();
-        pageThree();
-      });
-
-      bgAudio.currentTime = 0;
-      bgAudio.volume = 1;
-      bgAudio.play().catch(() => {});
-
-      bgAudio.ontimeupdate = () => {
-        if (!fading && bgAudio.duration && bgAudio.currentTime >= bgAudio.duration - 4) {
-          fading = true;
-
-          fadeInterval = setInterval(() => {
-            if (bgAudio.volume > 0.05) bgAudio.volume -= 0.05;
-            else {
-              clearInterval(fadeInterval);
-              fadeInterval = null;
-
-              bgAudio.pause();
-              document.body.classList.remove('red-bg');
-              q2Yes.classList.add('show');
-            }
-          }, 200);
+          bgAudio.pause();
+          document.body.classList.remove('red-bg');
+          q2Yes.classList.add('show');
         }
-      };
+      }, 200);
     }
+  };
+}
 
     // -------------------------
     // PAGE 3
