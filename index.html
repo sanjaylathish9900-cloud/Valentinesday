@@ -111,73 +111,27 @@
   const bgAudio = document.getElementById('bgAudio');
   const noAudio = document.getElementById('noAudio');
 
+  // ===== Timer starts when the page loads =====
+  const pageLoadTime = Date.now();
+  const YES_AUDIO_DELAY = 5; // seconds
+
+  // ===== HARD GATE: audio may ONLY play when we explicitly allow it =====
+  let allowNoAudioPlay = false;
+
+  // Debug + enforce: if anything tries to play noAudio (hover/old code/etc), stop it.
+  noAudio.addEventListener('play', () => {
+    console.log('[noAudio] play event fired. allowNoAudioPlay =', allowNoAudioPlay);
+    console.trace('[noAudio] play trace (what triggered it?)');
+
+    if (!allowNoAudioPlay) {
+      // Immediately kill any unwanted playback
+      noAudio.pause();
+      noAudio.currentTime = 0;
+    }
+  });
+
   let evadeHandler = null;
   let fading = false;
-
-  // Page 3 state
-  let noAttempts = 0;
-  let inNoZone = false;
-  let noAudioPlayed = false;
-  let page3Timer = null;
-  let audioUnlocked = false;
-
-  function setHint(text) {
-    let el = document.getElementById('hint');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'hint';
-      el.style.position = 'fixed';
-      el.style.bottom = '18px';
-      el.style.left = '50%';
-      el.style.transform = 'translateX(-50%)';
-      el.style.padding = '10px 14px';
-      el.style.borderRadius = '12px';
-      el.style.background = 'rgba(0,0,0,0.08)';
-      el.style.color = '#333';
-      el.style.fontSize = '14px';
-      el.style.zIndex = '9999';
-      document.body.appendChild(el);
-    }
-    el.textContent = text;
-  }
-
-  function clearHint() {
-    const el = document.getElementById('hint');
-    if (el) el.remove();
-  }
-
-  // Prime audio on first real click so later play() works on iPhone/Safari.
-  function unlockAudioOnce() {
-    if (audioUnlocked) return;
-    audioUnlocked = true;
-
-    try {
-      bgAudio.muted = true;
-      noAudio.muted = true;
-
-      const p1 = bgAudio.play();
-      if (p1 && typeof p1.then === 'function') {
-        p1.then(() => {
-          bgAudio.pause();
-          bgAudio.currentTime = 0;
-          bgAudio.muted = false;
-        }).catch(() => { bgAudio.muted = false; });
-      } else {
-        bgAudio.muted = false;
-      }
-
-      const p2 = noAudio.play();
-      if (p2 && typeof p2.then === 'function') {
-        p2.then(() => {
-          noAudio.pause();
-          noAudio.currentTime = 0;
-          noAudio.muted = false;
-        }).catch(() => { noAudio.muted = false; });
-      } else {
-        noAudio.muted = false;
-      }
-    } catch (_) {}
-  }
 
   function stopAudio() {
     bgAudio.pause();
@@ -193,9 +147,9 @@
 
   function pageOne() {
     stopAudio();
-    clearHint();
 
-    // stop any page-3 audio just in case
+    // Ensure page-3 audio is never accidentally playing
+    allowNoAudioPlay = false;
     noAudio.pause();
     noAudio.currentTime = 0;
 
@@ -203,25 +157,18 @@
       <div class="screen">
         ${puppy('🐶')}
         <div class="question">Are you Shajiii?</div>
-        <button class="yes-btn show" id="p1yes">YES</button>
+        <button class="yes-btn show" onclick="pageTwo()">YES</button>
       </div>
     `;
-
-    document.getElementById('p1yes').addEventListener('click', () => {
-      unlockAudioOnce();
-      pageTwo();
-    });
   }
 
   function pageTwo() {
     document.body.classList.add('red-bg');
-    clearHint();
-
     app.innerHTML = `
       <div class="screen">
         ${puppy('🐶😊')}
         <div class="question">nammuk graamangalil chennn raaparkam?......</div>
-        <button class="yes-btn" id="q2Yes">YES</button>
+        <button class="yes-btn" id="q2Yes" onclick="pageThree()">YES</button>
       </div>
     `;
 
@@ -229,14 +176,12 @@
     bgAudio.volume = 1;
     bgAudio.play().catch(() => {});
 
-    // Fade last ~4 seconds, then reveal YES and revert background
     bgAudio.ontimeupdate = () => {
       if (!fading && bgAudio.duration && bgAudio.currentTime >= bgAudio.duration - 4) {
         fading = true;
         const fade = setInterval(() => {
-          if (bgAudio.volume > 0.05) {
-            bgAudio.volume -= 0.05;
-          } else {
+          if (bgAudio.volume > 0.05) bgAudio.volume -= 0.05;
+          else {
             clearInterval(fade);
             bgAudio.pause();
             document.body.classList.remove('red-bg');
@@ -245,75 +190,50 @@
         }, 200);
       }
     };
-
-    document.getElementById('q2Yes').addEventListener('click', () => {
-      unlockAudioOnce();
-      pageThree();
-    });
-  }
-
-  function startNoAudio(noBtn) {
-    if (noAudioPlayed) return;
-    noAudioPlayed = true;
-
-    noAudio.currentTime = 0;
-    noAudio.load();
-
-    setHint('🎧');
-
-    const p = noAudio.play();
-    if (p && typeof p.then === 'function') {
-      p.then(() => {
-        setHint('🙂');
-      }).catch(() => {
-        setHint('Tap anywhere 🙂');
-        document.addEventListener('pointerdown', () => {
-          noAudio.play().catch(() => {});
-          setHint('🙂');
-        }, { once: true });
-      });
-    }
-
-    noAudio.onended = () => {
-      noBtn.style.display = 'none';
-      clearHint();
-    };
   }
 
   function pageThree() {
     stopAudio();
-    clearHint();
 
+    // Remove old evade handler (prevents old logic from staying alive)
     if (evadeHandler) document.removeEventListener('pointermove', evadeHandler);
 
-    // Reset page 3 state
-    noAttempts = 0;
-    inNoZone = false;
-    noAudioPlayed = false;
+    // Ensure audio is fully stopped before showing page 3
+    allowNoAudioPlay = false;
     noAudio.pause();
     noAudio.currentTime = 0;
-
-    clearTimeout(page3Timer);
 
     app.innerHTML = `
       <div class="screen">
         ${puppy('🐶🥹')}
         <div class="question">Will you be my Valentine?</div>
-        <button class="yes-btn show" onclick="meltdown()">YES</button>
+        <button class="yes-btn show" id="yesBtn">YES</button>
         <button class="no-btn" id="noBtn">NO</button>
       </div>
     `;
 
     const noBtn = document.getElementById('noBtn');
+    const yesBtn = document.getElementById('yesBtn');
+
     noBtn.style.left = '60%';
-    noBtn.style.top  = '60%';
+    noBtn.style.top = '60%';
 
-    // Linger rule: after 5s on page 3, play audio
-    page3Timer = setTimeout(() => {
-      if (!noAudioPlayed) startNoAudio(noBtn);
-    }, 5000);
+    // YES: Click under 5s → normal. After 5s → allow audio then play.
+    yesBtn.addEventListener('click', () => {
+      const elapsed = (Date.now() - pageLoadTime) / 1000;
 
-    // Proximity rule: count one attempt per approach (not per pixel)
+      if (elapsed > YES_AUDIO_DELAY) {
+        allowNoAudioPlay = true;
+        noAudio.currentTime = 0;
+        noAudio.play().catch(() => {});
+        // immediately lock again so NOTHING else can start it
+        allowNoAudioPlay = false;
+      }
+
+      meltdown();
+    });
+
+    // NO: Run away when pointer gets close (hover/proximity)
     evadeHandler = (e) => {
       const r = noBtn.getBoundingClientRect();
       const d = Math.hypot(
@@ -322,19 +242,8 @@
       );
 
       if (d < 130) {
-        if (!inNoZone) {
-          inNoZone = true;
-          noAttempts++;
-
-          noBtn.style.left = Math.random() * (innerWidth - 140) + 'px';
-          noBtn.style.top  = Math.random() * (innerHeight - 140) + 'px';
-
-          if (noAttempts >= 5 && !noAudioPlayed) {
-            startNoAudio(noBtn);
-          }
-        }
-      } else {
-        inNoZone = false;
+        noBtn.style.left = Math.random() * (innerWidth - 140) + 'px';
+        noBtn.style.top  = Math.random() * (innerHeight - 140) + 'px';
       }
     };
 
@@ -343,8 +252,6 @@
 
   function meltdown() {
     if (evadeHandler) document.removeEventListener('pointermove', evadeHandler);
-    clearTimeout(page3Timer);
-    clearHint();
 
     app.innerHTML = `
       <div class="screen shake">
@@ -356,7 +263,6 @@
   }
 
   function finalReveal() {
-    clearHint();
     app.innerHTML = `
       <div class="screen reveal">
         ${puppy('🐶❤️')}
@@ -365,7 +271,6 @@
     `;
   }
 
-  // Start
   pageOne();
 </script>
 </body>
