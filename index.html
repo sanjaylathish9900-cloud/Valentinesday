@@ -262,12 +262,18 @@ document.addEventListener('touchstart', startPage1AudioOnce, { once: true });
 
     document.body.classList.add('red-bg');
     app.innerHTML = `
-      <div class="screen">
-        ${puppy('🐶😊')}
-        <div class="question">nammuk graamangalil chennn raaparkam?......</div>
-        <button class="yes-btn" id="q2Yes" onclick="pageThree()">YES</button>
-      </div>
-    `;
+  <div class="screen">
+    <div class="warning-box" id="warningBox">
+      ⚠️ I double dare you to say NO
+    </div>
+
+    ${puppy('🐶🥹')}
+    <div class="question">Will you be my Valentine?</div>
+
+    <button class="yes-btn show" id="yesBtn">YES</button>
+    <button class="no-btn" id="noBtn">NO</button>
+  </div>
+`;
 
     bgAudio.currentTime = 0;
     bgAudio.volume = 1;
