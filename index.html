@@ -53,9 +53,7 @@
       background: #e53935;
       color: white;
       box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-      display: none;
     }
-    .yes-btn.show { display: inline-block; }
 
     .no-btn {
       width: 120px;
@@ -68,21 +66,6 @@
       color: #555;
       position: absolute;
       transition: top 0.12s ease, left 0.12s ease;
-    }
-
-    .shake { animation: shake 0.1s infinite; }
-    @keyframes shake {
-      0% { transform: translate(0, 0); }
-      25% { transform: translate(6px, -6px); }
-      50% { transform: translate(-6px, 6px); }
-      75% { transform: translate(6px, 6px); }
-      100% { transform: translate(-6px, -6px); }
-    }
-
-    .meltdown-text {
-      font-size: 64px;
-      font-weight: 800;
-      margin-top: 40px;
     }
 
     .reveal { animation: fadeIn 1.2s ease forwards; opacity: 0; }
@@ -106,15 +89,72 @@
   <source src="apamanich.mp3" type="audio/mpeg">
 </audio>
 
-<audio id="bgAudio" preload="auto">...</audio>
-<audio id="noAudio" preload="auto">...</audio>
-
 <script>
   const app = document.getElementById('app');
   const bgAudio = document.getElementById('bgAudio');
   const noAudio = document.getElementById('noAudio');
-  ...
+
+  function pageOne() {
+    app.innerHTML = `
+      <div class="screen">
+        <div class="puppy">🐶</div>
+        <div class="question">I have a question for you...</div>
+        <button class="yes-btn" onclick="pageTwo()">Click to hear it</button>
+      </div>
+    `;
+  }
+
+  function pageTwo() {
+    // Start background music on user interaction
+    bgAudio.volume = 0.4;
+    bgAudio.play().catch(e => console.log("Music blocked until next click"));
+
+    app.innerHTML = `
+      <div class="screen">
+        <div class="puppy">🥺</div>
+        <div class="question">Will you be my Valentine?</div>
+        <button class="yes-btn" id="yesBtn">YES</button>
+        <button class="no-btn" id="noBtn">NO</button>
+      </div>
+    `;
+
+    const noBtn = document.getElementById('noBtn');
+    const yesBtn = document.getElementById('yesBtn');
+
+    // Make the "No" button move and play the sound
+    noBtn.addEventListener('mouseover', () => {
+      // 1. Play apamanich.mp3 (Reset it first so it plays every time)
+      noAudio.pause();
+      noAudio.currentTime = 0;
+      noAudio.play().catch(e => console.log("Sound effect blocked"));
+
+      // 2. Move button to random position
+      const x = Math.random() * (window.innerWidth - 120);
+      const y = Math.random() * (window.innerHeight - 120);
+      noBtn.style.left = `${x}px`;
+      noBtn.style.top = `${y}px`;
+    });
+
+    yesBtn.addEventListener('click', pageThree);
+  }
+
+  function pageThree() {
+    // Stop the "No" sound if it's playing
+    noAudio.pause();
+    
+    // Change background and content
+    document.body.classList.add('red-bg');
+    app.innerHTML = `
+      <div class="screen reveal">
+        <div class="puppy">💖🐶💖</div>
+        <div class="final-text">Yay! I knew you'd say yes!</div>
+      </div>
+    `;
+  }
+
+  // Start the app
   pageOne();
 </script>
+
 </body>
 </html>
