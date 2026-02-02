@@ -195,6 +195,17 @@
 
   const p1Yes = document.getElementById('p1Yes');
 
+// Mobile-friendly: start page-1 audio on first interaction anywhere
+const startPage1AudioOnce = () => {
+  if (!page1AudioStarted) {
+    page1Audio.play().catch(() => {});
+    page1AudioStarted = true;
+  }
+};
+
+document.addEventListener('pointerdown', startPage1AudioOnce, { once: true });
+document.addEventListener('touchstart', startPage1AudioOnce, { once: true });
+
   // Try autoplay after 3 seconds
   page1Timer = setTimeout(() => {
     if (page1AudioStarted) return;
