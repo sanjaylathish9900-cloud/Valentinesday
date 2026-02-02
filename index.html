@@ -93,9 +93,10 @@
 
     .final-text { font-size: 32px; margin-top: 20px; }
 .warning-box {
-  position: absolute;
+  position: fixed;   /* ✅ key change */
   top: 18px;
   right: 18px;
+
   padding: 10px 14px;
   font-size: 14px;
   font-weight: 700;
@@ -103,9 +104,12 @@
   background: #ffeaea;
   border: 2px dashed #e53935;
   border-radius: 12px;
-  z-index: 10;
+
+  z-index: 9999;
   animation: tease 1.4s infinite ease-in-out;
   box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 @keyframes tease {
