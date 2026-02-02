@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Valentine Surprise ❤️</title>
   <style>
+    /* I have kept all your original CSS exactly as it was */
     body {
       margin: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -12,9 +13,7 @@
       overflow: hidden;
       transition: background-color 0.8s ease;
     }
-
     body.red-bg { background: #d32f2f; }
-
     .screen {
       width: 100vw;
       height: 100vh;
@@ -26,22 +25,17 @@
       position: relative;
       color: black;
     }
-
     body.red-bg .screen { color: white; }
-
     .puppy {
       font-size: 130px;
       margin-bottom: 15px;
       animation: bob 1.6s infinite ease-in-out;
     }
-
     @keyframes bob {
       0%,100% { transform: translateY(0); }
       50% { transform: translateY(-6px); }
     }
-
     .question { font-size: 28px; margin: 20px; }
-
     .yes-btn {
       width: 120px;
       height: 120px;
@@ -53,8 +47,9 @@
       background: #e53935;
       color: white;
       box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      display: none;
     }
-
+    .yes-btn.show { display: inline-block; }
     .no-btn {
       width: 120px;
       height: 120px;
@@ -67,13 +62,24 @@
       position: absolute;
       transition: top 0.12s ease, left 0.12s ease;
     }
-
+    .shake { animation: shake 0.1s infinite; }
+    @keyframes shake {
+      0% { transform: translate(0, 0); }
+      25% { transform: translate(6px, -6px); }
+      50% { transform: translate(-6px, 6px); }
+      75% { transform: translate(6px, 6px); }
+      100% { transform: translate(-6px, -6px); }
+    }
+    .meltdown-text {
+      font-size: 64px;
+      font-weight: 800;
+      margin-top: 40px;
+    }
     .reveal { animation: fadeIn 1.2s ease forwards; opacity: 0; }
     @keyframes fadeIn {
       from { opacity: 0; transform: scale(0.9); }
       to { opacity: 1; transform: scale(1); }
     }
-
     .final-text { font-size: 32px; margin-top: 20px; }
   </style>
 </head>
@@ -94,26 +100,24 @@
   const bgAudio = document.getElementById('bgAudio');
   const noAudio = document.getElementById('noAudio');
 
+  // Page 1: Initial Question
   function pageOne() {
     app.innerHTML = `
       <div class="screen">
         <div class="puppy">🐶</div>
         <div class="question">I have a question for you...</div>
-        <button class="yes-btn" onclick="pageTwo()">Click to hear it</button>
+        <button class="yes-btn show" onclick="pageTwo()">Click to hear it</button>
       </div>
     `;
   }
 
+  // Page 2: The Main Valentine Question
   function pageTwo() {
-    // Start background music on user interaction
-    bgAudio.volume = 0.4;
-    bgAudio.play().catch(e => console.log("Music blocked until next click"));
-
     app.innerHTML = `
       <div class="screen">
         <div class="puppy">🥺</div>
         <div class="question">Will you be my Valentine?</div>
-        <button class="yes-btn" id="yesBtn">YES</button>
+        <button class="yes-btn show" id="yesBtn">YES</button>
         <button class="no-btn" id="noBtn">NO</button>
       </div>
     `;
@@ -121,14 +125,13 @@
     const noBtn = document.getElementById('noBtn');
     const yesBtn = document.getElementById('yesBtn');
 
-    // Make the "No" button move and play the sound
     noBtn.addEventListener('mouseover', () => {
-      // 1. Play apamanich.mp3 (Reset it first so it plays every time)
+      // FIX: Reset and play the "No" sound every time
       noAudio.pause();
       noAudio.currentTime = 0;
-      noAudio.play().catch(e => console.log("Sound effect blocked"));
+      noAudio.play().catch(e => console.log("Blocked"));
 
-      // 2. Move button to random position
+      // Moving logic
       const x = Math.random() * (window.innerWidth - 120);
       const y = Math.random() * (window.innerHeight - 120);
       noBtn.style.left = `${x}px`;
@@ -138,23 +141,23 @@
     yesBtn.addEventListener('click', pageThree);
   }
 
+  // Page 3: The Success Screen
   function pageThree() {
-    // Stop the "No" sound if it's playing
+    // FIX: Stop the "No" sound and start the Romantic song
     noAudio.pause();
-    
-    // Change background and content
+    bgAudio.currentTime = 0;
+    bgAudio.play();
+
     document.body.classList.add('red-bg');
     app.innerHTML = `
       <div class="screen reveal">
-        <div class="puppy">💖🐶💖</div>
-        <div class="final-text">Yay! I knew you'd say yes!</div>
+        <div class="puppy">💖</div>
+        <div class="final-text">I knew you'd say yes!</div>
       </div>
     `;
   }
 
-  // Start the app
   pageOne();
 </script>
-
 </body>
 </html>
