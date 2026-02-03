@@ -110,6 +110,26 @@
       margin-top: 20px;
     }
 
+    .final-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+}
+
+.final-gif {
+  width: 260px;
+  max-width: 35vw;
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+  animation: softFloat 4s ease-in-out infinite;
+}
+
+@keyframes softFloat {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
     /* Final page special background (blue + green) */
 body.final-bg {
   background: linear-gradient(
@@ -460,28 +480,37 @@ function finalReveal() {
 
   perfectAudio.pause();
   perfectAudio.currentTime = 0;
-  perfectAudio.loop = true; // ✅ LOOP ENABLED
+  perfectAudio.loop = true;
   perfectAudio.volume = 1;
 
-  // Blue + green favourite-colour background
+  // Favourite colours: blue + green
   document.body.style.background =
     "linear-gradient(135deg, #0d47a1 0%, #1b5e20 100%)";
 
   app.innerHTML = `
     <div class="screen reveal">
-      ${puppy('🐶❤️')}
-      <div class="final-text">
-        Just kidding 😌<br><br>
-        Happy Valentine’s Day,<br>
-        <span class="name-highlight">Shajiii ❤️</span>
+      <div class="final-stage">
+        <div class="final-text">
+          ${puppy('🐶❤️')}
+          Just kidding 😌<br><br>
+          Happy Valentine’s Day,<br>
+          <span class="name-highlight">Shajiii ❤️</span>
+        </div>
+
+        <!-- Memory GIF (right side) -->
+        <img
+          src="memory.gif"
+          alt="Our memories through the years"
+          class="final-gif"
+        />
       </div>
     </div>
   `;
 
-  // Play finalAudio first
+  // Play first final audio
   finalAudio.play().catch(() => {});
 
-  // When finalAudio ends → start Perfect (looping forever)
+  // When final audio ends → start Perfect + GIF stays visible
   finalAudio.addEventListener(
     'ended',
     () => {
