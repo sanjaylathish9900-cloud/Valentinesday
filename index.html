@@ -110,6 +110,15 @@
       margin-top: 20px;
     }
 
+    /* Final page special background (blue + green) */
+body.final-bg {
+  background: linear-gradient(
+    135deg,
+    #0d47a1 0%,   /* deep romantic blue */
+    #1b5e20 100%  /* rich emerald green */
+  );
+}
+
     /* Warning box */
     .warning-box {
       position: fixed;
@@ -409,20 +418,31 @@
   }
 
   /* ---------------- FINAL ---------------- */
-  function finalReveal() {
-    app.innerHTML = `
-      <div class="screen reveal">
-        ${puppy('🐶❤️')}
-        <div class="final-text">
-          Just kidding 😌<br><br>
-          Happy Valentine’s Day, Shajiii ❤️
-        </div>
-      </div>
-    `;
+function finalReveal() {
+  // stop all other audio
+  meltdownAudio.pause(); meltdownAudio.currentTime = 0;
+  bgAudio.pause(); bgAudio.currentTime = 0;
+  noAudio.pause(); noAudio.currentTime = 0;
+  page1Audio.pause(); page1Audio.currentTime = 0;
 
-    finalAudio.currentTime = 0;
-    finalAudio.play().catch(() => {});
-  }
+  // remove other backgrounds, add final gradient
+  document.body.classList.remove('red-bg', 'blue-bg');
+  document.body.classList.add('final-bg');
+
+  app.innerHTML = `
+    <div class="screen reveal">
+      ${puppy('🐶❤️')}
+      <div class="final-text">
+        Just kidding 😌<br><br>
+        Happy Valentine’s Day, Shajiii 💙💚
+      </div>
+    </div>
+  `;
+
+  finalAudio.currentTime = 0;
+  finalAudio.play().catch(() => {});
+}
+
 
   pageOne();
 </script>
