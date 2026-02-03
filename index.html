@@ -167,6 +167,11 @@ body.final-bg {
   <source src="salimkumar.mp3" type="audio/mpeg">
 </audio>
 
+  <audio id="perfectAudio" preload="auto">
+  <source src="perfect.mp3" type="audio/mpeg">
+</audio>
+
+
 <script>
   const app = document.getElementById('app');
   const bgAudio = document.getElementById('bgAudio');
@@ -174,6 +179,8 @@ body.final-bg {
   const noAudio = document.getElementById('noAudio');
   const meltdownAudio = document.getElementById('meltdownAudio');
   const finalAudio = document.getElementById('finalAudio');
+  const perfectAudio = document.getElementById('perfectAudio');
+
 
   let fadeInterval = null;
   let fading = false;
@@ -419,13 +426,13 @@ body.final-bg {
 
   /* ---------------- FINAL ---------------- */
 function finalReveal() {
-  // stop all other audio
+  // Stop everything else
   meltdownAudio.pause(); meltdownAudio.currentTime = 0;
   bgAudio.pause(); bgAudio.currentTime = 0;
   noAudio.pause(); noAudio.currentTime = 0;
   page1Audio.pause(); page1Audio.currentTime = 0;
 
-  // remove other backgrounds, add final gradient
+  // Apply final blue + green background
   document.body.classList.remove('red-bg', 'blue-bg');
   document.body.classList.add('final-bg');
 
@@ -439,9 +446,32 @@ function finalReveal() {
     </div>
   `;
 
+  /* -------- PLAY FIRST FINAL AUDIO -------- */
+  finalAudio.pause();
   finalAudio.currentTime = 0;
+  finalAudio.volume = 0.9;
+
   finalAudio.play().catch(() => {});
+
+  /* -------- WHEN IT ENDS → PLAY PERFECT -------- */
+  finalAudio.addEventListener('ended', () => {
+    perfectAudio.pause();
+    perfectAudio.currentTime = 0;
+    perfectAudio.volume = 0;
+
+    perfectAudio.play().then(() => {
+      // gentle fade-in
+      const fade = setInterval(() => {
+        if (perfectAudio.volume < 0.85) {
+          perfectAudio.volume += 0.05;
+        } else {
+          clearInterval(fade);
+        }
+      }, 200);
+    }).catch(() => {});
+  }, { once: true });
 }
+
 
 
   pageOne();
