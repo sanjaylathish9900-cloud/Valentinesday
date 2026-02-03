@@ -64,7 +64,6 @@
       display: none;
       transition: opacity 0.5s ease;
     }
-
     .yes-btn.show { display: inline-block; }
 
     .no-btn {
@@ -125,6 +124,8 @@
       border-radius: 12px;
       z-index: 9999;
       animation: tease 1.4s infinite ease-in-out;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+      transition: opacity 0.3s ease, transform 0.3s ease;
     }
 
     @keyframes tease {
@@ -138,23 +139,23 @@
 <div id="app"></div>
 
 <audio id="bgAudio" preload="auto">
-  <source src="Namukku Parkkan Munthirithoppukal - The Proposal (mp3cut.net).mp3">
+  <source src="Namukku Parkkan Munthirithoppukal - The Proposal (mp3cut.net).mp3" type="audio/mpeg">
 </audio>
 
 <audio id="page1Audio" preload="auto">
-  <source src="enthovaran.mp3">
+  <source src="enthovaran.mp3" type="audio/mpeg">
 </audio>
 
 <audio id="noAudio" preload="auto">
-  <source src="apamanich.mp3">
+  <source src="apamanich.mp3" type="audio/mpeg">
 </audio>
 
 <audio id="meltdownAudio" preload="auto">
-  <source src="evidelm.mp3">
+  <source src="evidelm.mp3" type="audio/mpeg">
 </audio>
 
 <audio id="finalAudio" preload="auto">
-  <source src="salim.mp3">
+  <source src="salim.mp3" type="audio/mpeg">
 </audio>
 
 <script>
@@ -167,18 +168,35 @@
 
   let fadeInterval = null;
   let fading = false;
-  let allowNoAudioPlay = false;
+
+  // Page 3 state
   let evadeHandler = null;
   let page3Timer = null;
   let noAudioPlayed = false;
 
+  // HARD GATE for noAudio
+  let allowNoAudioPlay = false;
+
+  // ✅ Hard gate: if anything tries to play noAudio, stop it unless allowed
+  noAudio.addEventListener('play', () => {
+    if (!allowNoAudioPlay) {
+      noAudio.pause();
+      noAudio.currentTime = 0;
+    }
+  });
+
   function stopAudio() {
-    if (fadeInterval) clearInterval(fadeInterval);
+    if (fadeInterval) {
+      clearInterval(fadeInterval);
+      fadeInterval = null;
+    }
     bgAudio.ontimeupdate = null;
-    bgAudio.pause(); bgAudio.currentTime = 0;
+
+    bgAudio.pause(); bgAudio.currentTime = 0; bgAudio.volume = 1;
     page1Audio.pause(); page1Audio.currentTime = 0;
     noAudio.pause(); noAudio.currentTime = 0;
     meltdownAudio.pause(); meltdownAudio.currentTime = 0;
+
     document.body.classList.remove('red-bg', 'blue-bg');
     fading = false;
   }
@@ -205,12 +223,17 @@
       q.style.opacity = '0';
       yes.style.opacity = '0';
 
+      // Start audio, then fade into blue DURING audio
+      page1Audio.currentTime = 0;
       page1Audio.play().then(() => {
         setTimeout(() => document.body.classList.add('blue-bg'), 250);
+      }).catch(() => {
+        document.body.classList.add('blue-bg');
       });
 
+      // When audio ends -> go page 2 after a short pause (not rushed)
       page1Audio.addEventListener('ended', () => {
-        setTimeout(pageTwo, 800); // slower transition
+        setTimeout(pageTwo, 800);
       }, { once: true });
     });
   }
@@ -230,15 +253,20 @@
 
     const yes = document.getElementById('q2Yes');
 
-    bgAudio.play();
+    bgAudio.currentTime = 0;
+    bgAudio.volume = 1;
+    bgAudio.play().catch(() => {});
 
     bgAudio.ontimeupdate = () => {
       if (!fading && bgAudio.duration && bgAudio.currentTime >= bgAudio.duration - 4) {
         fading = true;
+
         fadeInterval = setInterval(() => {
           if (bgAudio.volume > 0.05) bgAudio.volume -= 0.05;
           else {
             clearInterval(fadeInterval);
+            fadeInterval = null;
+
             bgAudio.pause();
             document.body.classList.remove('red-bg');
             yes.classList.add('show');
@@ -257,30 +285,100 @@
   function pageThree() {
     stopAudio();
 
+    // Remove old evade handler if any
+    if (evadeHandler) document.removeEventListener('pointermove', evadeHandler);
+
+    // Clear any previous timer
+    if (page3Timer) clearTimeout(page3Timer);
+
+    // Reset page-3 audio state
+    noAudioPlayed = false;
+    allowNoAudioPlay = false;
+    noAudio.pause();
+    noAudio.currentTime = 0;
+
     app.innerHTML = `
       <div class="screen">
-        <div class="warning-box">⚠️ I double dare you to say NO</div>
+        <div class="warning-box" id="warningBox">⚠️ I double dare you to say NO</div>
+
         ${puppy('🐶🥹')}
         <div class="question">Will you be my Valentine?</div>
+
         <button class="yes-btn show" id="yesBtn">YES</button>
         <button class="no-btn" id="noBtn">NO</button>
       </div>
     `;
 
-    const yes = document.getElementById('yesBtn');
-    const no = document.getElementById('noBtn');
+    const yesBtn = document.getElementById('yesBtn');
+    const noBtn  = document.getElementById('noBtn');
 
-    no.style.left = '60%';
-    no.style.top = '60%';
+    noBtn.style.left = '60%';
+    noBtn.style.top  = '60%';
 
-    yes.addEventListener('click', meltdown);
+    // Play apamanich ONCE
+    function triggerNoAudio() {
+      if (noAudioPlayed) return;
+      noAudioPlayed = true;
 
-    evadeHandler = e => {
-      const r = no.getBoundingClientRect();
-      const d = Math.hypot(e.clientX - r.x, e.clientY - r.y);
-      if (d < 120) {
-        no.style.left = Math.random() * (innerWidth - 140) + 'px';
-        no.style.top = Math.random() * (innerHeight - 140) + 'px';
+      allowNoAudioPlay = true;
+      noAudio.currentTime = 0;
+
+      const p = noAudio.play();
+      if (p && typeof p.finally === "function") {
+        p.finally(() => { allowNoAudioPlay = false; });
+      } else {
+        setTimeout(() => { allowNoAudioPlay = false; }, 200);
+      }
+    }
+
+    // Rule A: if they stay on page 3 for 5 seconds -> play audio
+    const PAGE3_AUDIO_DELAY = 5;
+    page3Timer = setTimeout(() => {
+      triggerNoAudio();
+    }, PAGE3_AUDIO_DELAY * 1000);
+
+    // Hide warning box when apamanich ends
+    noAudio.addEventListener('ended', () => {
+      const warning = document.getElementById('warningBox');
+      if (warning) {
+        warning.style.opacity = '0';
+        warning.style.transform = 'scale(0.9)';
+        setTimeout(() => warning.remove(), 300);
+      }
+    }, { once: true });
+
+    // YES -> meltdown
+    yesBtn.addEventListener('click', () => {
+      if (page3Timer) clearTimeout(page3Timer);
+      meltdown();
+    });
+
+    // Rule B: count "tries" when NO runs away (5 tries -> play audio)
+    let tries = 0;
+    let lastTryAt = 0;
+    const TRY_COOLDOWN_MS = 350;
+
+    evadeHandler = (e) => {
+      const r = noBtn.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const d = Math.hypot(e.clientX - cx, e.clientY - cy);
+
+      if (d < 130) {
+        // Move away
+        noBtn.style.left = Math.random() * (innerWidth - 140) + 'px';
+        noBtn.style.top  = Math.random() * (innerHeight - 140) + 'px';
+
+        // Count attempt (with cooldown so one hover isn't 20 tries)
+        const now = Date.now();
+        if (now - lastTryAt > TRY_COOLDOWN_MS) {
+          lastTryAt = now;
+          tries += 1;
+
+          if (tries >= 5) {
+            triggerNoAudio();
+          }
+        }
       }
     };
 
@@ -289,7 +387,13 @@
 
   /* ---------------- MELTDOWN ---------------- */
   function meltdown() {
+    if (page3Timer) clearTimeout(page3Timer);
     document.removeEventListener('pointermove', evadeHandler);
+
+    // Stop other audios
+    bgAudio.pause(); bgAudio.currentTime = 0;
+    noAudio.pause(); noAudio.currentTime = 0;
+    page1Audio.pause(); page1Audio.currentTime = 0;
 
     app.innerHTML = `
       <div class="screen shake">
@@ -298,7 +402,9 @@
       </div>
     `;
 
-    meltdownAudio.play();
+    meltdownAudio.currentTime = 0;
+    meltdownAudio.play().catch(() => {});
+
     meltdownAudio.addEventListener('ended', finalReveal, { once: true });
   }
 
@@ -313,7 +419,9 @@
         </div>
       </div>
     `;
-    finalAudio.play();
+
+    finalAudio.currentTime = 0;
+    finalAudio.play().catch(() => {});
   }
 
   pageOne();
