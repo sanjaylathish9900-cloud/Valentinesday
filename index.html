@@ -119,6 +119,26 @@ body.final-bg {
   );
 }
 
+.final-text {
+  font-size: 34px;
+  margin-top: 20px;
+  color: #e53935;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow:
+    0 2px 6px rgba(229, 57, 53, 0.35),
+    0 0 12px rgba(255, 120, 120, 0.45);
+}
+
+.name-highlight {
+  color: #ff1744;
+  font-weight: 800;
+  text-shadow:
+    0 3px 10px rgba(255, 23, 68, 0.5),
+    0 0 18px rgba(255, 140, 140, 0.6);
+}
+
+
     /* Warning box */
     .warning-box {
       position: fixed;
@@ -167,9 +187,10 @@ body.final-bg {
   <source src="salimkumar.mp3" type="audio/mpeg">
 </audio>
 
-  <audio id="perfectAudio" preload="auto">
+<audio id="perfectAudio" preload="auto" loop>
   <source src="perfect.mp3" type="audio/mpeg">
 </audio>
+
 
 
 <script>
@@ -426,50 +447,48 @@ body.final-bg {
 
   /* ---------------- FINAL ---------------- */
 function finalReveal() {
-  // Stop everything else
-  meltdownAudio.pause(); meltdownAudio.currentTime = 0;
+  // Stop all other audio
   bgAudio.pause(); bgAudio.currentTime = 0;
-  noAudio.pause(); noAudio.currentTime = 0;
   page1Audio.pause(); page1Audio.currentTime = 0;
+  noAudio.pause(); noAudio.currentTime = 0;
+  meltdownAudio.pause(); meltdownAudio.currentTime = 0;
 
-  // Apply final blue + green background
-  document.body.classList.remove('red-bg', 'blue-bg');
-  document.body.classList.add('final-bg');
+  // Reset final audios
+  finalAudio.pause();
+  finalAudio.currentTime = 0;
+  finalAudio.loop = false;
+
+  perfectAudio.pause();
+  perfectAudio.currentTime = 0;
+  perfectAudio.loop = true; // ✅ LOOP ENABLED
+  perfectAudio.volume = 1;
+
+  // Blue + green favourite-colour background
+  document.body.style.background =
+    "linear-gradient(135deg, #0d47a1 0%, #1b5e20 100%)";
 
   app.innerHTML = `
     <div class="screen reveal">
       ${puppy('🐶❤️')}
       <div class="final-text">
         Just kidding 😌<br><br>
-        Happy Valentine’s Day, Shajiii 💙💚
+        Happy Valentine’s Day,<br>
+        <span class="name-highlight">Shajiii ❤️</span>
       </div>
     </div>
   `;
 
-  /* -------- PLAY FIRST FINAL AUDIO -------- */
-  finalAudio.pause();
-  finalAudio.currentTime = 0;
-  finalAudio.volume = 0.9;
-
+  // Play finalAudio first
   finalAudio.play().catch(() => {});
 
-  /* -------- WHEN IT ENDS → PLAY PERFECT -------- */
-  finalAudio.addEventListener('ended', () => {
-    perfectAudio.pause();
-    perfectAudio.currentTime = 0;
-    perfectAudio.volume = 0;
-
-    perfectAudio.play().then(() => {
-      // gentle fade-in
-      const fade = setInterval(() => {
-        if (perfectAudio.volume < 0.85) {
-          perfectAudio.volume += 0.05;
-        } else {
-          clearInterval(fade);
-        }
-      }, 200);
-    }).catch(() => {});
-  }, { once: true });
+  // When finalAudio ends → start Perfect (looping forever)
+  finalAudio.addEventListener(
+    'ended',
+    () => {
+      perfectAudio.play().catch(() => {});
+    },
+    { once: true }
+  );
 }
 
 
