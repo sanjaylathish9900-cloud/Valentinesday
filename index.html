@@ -157,6 +157,17 @@ body.final-bg {
     0 3px 10px rgba(255, 23, 68, 0.5),
     0 0 18px rgba(255, 140, 140, 0.6);
 }
+.final-gif {
+  opacity: 0;
+  transform: translateX(10px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.final-gif.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
 
 
     /* Warning box */
@@ -497,9 +508,10 @@ function finalReveal() {
           <span class="name-highlight">Shajiii ❤️</span>
         </div>
 
-        <!-- Memory GIF (right side) -->
+        <!-- GIF is present but HIDDEN until Perfect starts -->
         <img
-          src="memory.gif"
+          id="memoryGif"
+          src="./memory.gif?v=1"
           alt="Our memories through the years"
           class="final-gif"
         />
@@ -507,18 +519,24 @@ function finalReveal() {
     </div>
   `;
 
+  const memoryGif = document.getElementById('memoryGif');
+
   // Play first final audio
   finalAudio.play().catch(() => {});
 
-  // When final audio ends → start Perfect + GIF stays visible
+  // When finalAudio ends → start Perfect + reveal GIF
   finalAudio.addEventListener(
     'ended',
     () => {
       perfectAudio.play().catch(() => {});
+
+      // show GIF exactly when Perfect starts
+      if (memoryGif) memoryGif.classList.add('show');
     },
     { once: true }
   );
 }
+
 
 
 
